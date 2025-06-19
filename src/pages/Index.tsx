@@ -6,9 +6,10 @@ import MemberDashboard from '@/components/MemberDashboard';
 import AdminDashboard from '@/components/AdminDashboard';
 import LoanApplication from '@/components/LoanApplication';
 import TransactionHistory from '@/components/TransactionHistory';
+import NotificationsCenter from '@/components/NotificationsCenter';
 
 export type UserRole = 'member' | 'admin' | null;
-export type Screen = 'splash' | 'login' | 'member-dashboard' | 'admin-dashboard' | 'loan-application' | 'transaction-history';
+export type Screen = 'splash' | 'login' | 'member-dashboard' | 'admin-dashboard' | 'loan-application' | 'transaction-history' | 'notifications-center';
 
 const Index = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>('splash');
@@ -54,6 +55,8 @@ const Index = () => {
         return <LoanApplication user={user} onNavigate={navigateToScreen} />;
       case 'transaction-history':
         return <TransactionHistory user={user} onNavigate={navigateToScreen} />;
+      case 'notifications-center':
+        return <NotificationsCenter user={user} onNavigate={navigateToScreen} />;
       default:
         return <LoginScreen onLogin={handleLogin} />;
     }

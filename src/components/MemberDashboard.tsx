@@ -40,7 +40,7 @@ const MemberDashboard = ({ user, onNavigate, onLogout }: MemberDashboardProps) =
       icon: <CreditCard className="h-6 w-6" />,
       title: 'Apply for Loan',
       description: 'Quick loan application',
-      color: 'bg-blue-500',
+      color: 'bg-purple-500',
       action: () => onNavigate('loan-application')
     },
     {
@@ -54,7 +54,7 @@ const MemberDashboard = ({ user, onNavigate, onLogout }: MemberDashboardProps) =
       icon: <Target className="h-6 w-6" />,
       title: 'Savings Goal',
       description: 'Set and track goals',
-      color: 'bg-purple-500',
+      color: 'bg-blue-500',
       action: () => {}
     },
     {
@@ -62,7 +62,7 @@ const MemberDashboard = ({ user, onNavigate, onLogout }: MemberDashboardProps) =
       title: 'Notifications',
       description: '3 new messages',
       color: 'bg-orange-500',
-      action: () => {}
+      action: () => onNavigate('notifications-center')
     }
   ];
 
@@ -73,13 +73,13 @@ const MemberDashboard = ({ user, onNavigate, onLogout }: MemberDashboardProps) =
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 pb-20">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-purple-50/30 pb-20">
       {/* Header */}
       <div className="gradient-primary text-white p-6 rounded-b-3xl">
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-2xl font-bold">Welcome back,</h1>
-            <p className="text-blue-100">{user?.name || 'Member'}</p>
+            <p className="text-purple-100">{user?.name || 'Member'}</p>
           </div>
           <Button
             variant="ghost"
@@ -121,13 +121,13 @@ const MemberDashboard = ({ user, onNavigate, onLogout }: MemberDashboardProps) =
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="text-center p-3 bg-gray-50 rounded-lg">
+              <div className="text-center p-3 bg-purple-50 rounded-lg">
                 <p className="text-xs text-gray-600 mb-1">Savings</p>
                 <p className="font-semibold text-gray-900">
                   {showBalance ? formatCurrency(user?.savings || 0) : '••••••'}
                 </p>
               </div>
-              <div className="text-center p-3 bg-gray-50 rounded-lg">
+              <div className="text-center p-3 bg-red-50 rounded-lg">
                 <p className="text-xs text-gray-600 mb-1">Loan Balance</p>
                 <p className="font-semibold text-red-600">
                   {showBalance ? formatCurrency(user?.loanBalance || 0) : '••••••'}
@@ -166,6 +166,7 @@ const MemberDashboard = ({ user, onNavigate, onLogout }: MemberDashboardProps) =
             variant="ghost" 
             size="sm" 
             onClick={() => onNavigate('transaction-history')}
+            className="text-purple-600 hover:text-purple-700"
           >
             View All
           </Button>
