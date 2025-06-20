@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, Car****Content } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -82,7 +82,7 @@ const ApprovalsManagement = () => {
     switch (type) {
       case 'membership': return 'bg-blue-100 text-blue-800';
       case 'loan': return 'bg-purple-100 text-purple-800';
-      case 'withdrawal': return 'bg-orange-100 text-orange-800';
+      case 'withdrawal': return 'bg-teal-100 text-teal-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -90,7 +90,7 @@ const ApprovalsManagement = () => {
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'high': return 'bg-red-100 text-red-800';
-      case 'medium': return 'bg-yellow-100 text-yellow-800';
+      case 'medium': return 'bg-blue-100 text-blue-800';
       case 'low': return 'bg-green-100 text-green-800';
       default: return 'bg-gray-100 text-gray-800';
     }
@@ -119,7 +119,7 @@ const ApprovalsManagement = () => {
                 <p className="text-sm font-medium text-gray-600">Pending Approvals</p>
                 <p className="text-2xl font-bold text-gray-900">{pendingCount}</p>
               </div>
-              <Clock className="h-8 w-8 text-orange-600" />
+              <Clock className="h-8 w-8 text-cyan-600" />
             </div>
           </CardContent>
         </Card>

@@ -3,7 +3,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Purple-themed cooperative society app */
+/* Cool-themed cooperative society app */
 
 @layer base {
   :root {
@@ -36,16 +36,16 @@
     --ring: 108 74 182; /* Purple ring */
 
     --success: 34 197 94;
-    --warning: 245 158 11;
-    --info: 59 130 246;
+    --warning: 59 130 246; /* Changed from yellow to blue */
+    --info: 14 165 233; /* Cool blue */
 
     --radius: 0.75rem;
 
-    /* Custom card colors */
+    /* Custom card colors - cool tones */
     --card-members: 237 233 254; /* Light lavender */
     --card-loans: 220 252 231; /* Soft green */
     --card-savings: 219 234 254; /* Soft blue */
-    --card-approvals: 254 237 227; /* Light peach */
+    --card-approvals: 236 254 255; /* Light cyan instead of peach */
   }
 }
 

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Users, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Users, CheckCircle, User, AlertCircle } from 'lucide-react';
 import { Screen } from '@/pages/Index';
 
 interface LoanApplicationProps {
@@ -14,28 +14,57 @@ interface LoanApplicationProps {
   onNavigate: (screen: Screen) => void;
 }
 
+interface Guarantor {
+  accountNumber: string;
+  name: string;
+  balance: number;
+}
+
 const LoanApplication = ({ user, onNavigate }: LoanApplicationProps) => {
   const [currentStep, setCurrentStep] = useState(1);
+  const [guarantor1, setGuarantor1] = useState<Guarantor | null>(null);
+  const [guarantor2, setGuarantor2] = useState<Guarantor | null>(null);
+  const [guarantor1Account, setGuarantor1Account] = useState('');
+  const [guarantor2Account, setGuarantor2Account] = useState('');
   const [formData, setFormData] = useState({
     amount: '',
     purpose: '',
-    duration: '',
-    guarantor1: '',
-    guarantor2: '',
-    guarantor1Phone: '',
-    guarantor2Phone: '',
     collateral: ''
   });
 
-  const guarantors = [
-    { id: 'G001', name: 'Alice Johnson', memberSince: '2020' },
-    { id: 'G002', name: 'Bob Williams', memberSince: '2019' },
-    { id: 'G003', name: 'Carol Davis', memberSince: '2021' },
-    { id: 'G004', name: 'David Brown', memberSince: '2018' },
+  // Mock user data - in real app this would come from props
+  const memberSavings = 150000; // Member's current savings
+  const maxLoanAmount = memberSavings * 3; // 3x savings rule
+
+  // Mock guarantor database
+  const guarantorDatabase = [
+    { accountNumber: '1234567890', name: 'Alice Johnson', balance: 200000 },
+    { accountNumber: '0987654321', name: 'Bob Williams', balance: 180000 },
+    { accountNumber: '1122334455', name: 'Carol Davis', balance: 250000 },
+    { accountNumber: '5566778899', name: 'David Brown', balance: 120000 },
   ];
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const lookupGuarantor = (accountNumber: string, guarantorNumber: 1 | 2) => {
+    const found = guarantorDatabase.find(g => g.accountNumber === accountNumber);
+    if (guarantorNumber === 1) {
+      setGuarantor1(found || null);
+    } else {
+      setGuarantor2(found || null);
+    }
+  };
+
+  const calculateWeeklyPayment = (amount: number) => {
+    return Math.ceil(amount / 24); // 0% interest, 24 weeks
+  };
+
+  const canApprove = () => {
+    const loanAmount = parseInt(formData.amount || '0');
+    const totalGuarantorBalance = (guarantor1?.balance || 0) + (guarantor2?.balance || 0);
+    return loanAmount <= maxLoanAmount && totalGuarantorBalance >= loanAmount;
   };
 
   const handleNext = () => {
@@ -47,13 +76,27 @@ const LoanApplication = ({ user, onNavigate }: LoanApplicationProps) => {
   };
 
   const handleSubmit = () => {
-    // Simulate loan application submission
-    console.log('Loan application submitted:', formData);
-    setCurrentStep(4); // Success step
+    console.log('Loan application submitted:', {
+      ...formData,
+      guarantor1,
+      guarantor2,
+      weeklyPayment: calculateWeeklyPayment(parseInt(formData.amount || '0'))
+    });
+    setCurrentStep(4);
   };
 
   const renderStep1 = () => (
     <div className="space-y-4">
+      <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+        <h4 className="font-medium text-blue-900 mb-2">Your Loan Eligibility</h4>
+        <div className="text-sm text-blue-800 space-y-1">
+          <p>Your Savings: ₦{memberSavings.toLocaleString()}</p>
+          <p>Maximum Loan: ₦{maxLoanAmount.toLocaleString()} (3x your savings)</p>
+          <p>Interest Rate: 0% (No interest)</p>
+          <p>Repayment: 24 weeks (weekly payments)</p>
+        </div>
+      </div>
+
       <div className="space-y-2">
         <Label htmlFor="amount">Loan Amount (₦)</Label>
         <Input
@@ -62,8 +105,21 @@ const LoanApplication = ({ user, onNavigate }: LoanApplicationProps) => {
           placeholder="Enter loan amount"
           value={formData.amount}
           onChange={(e) => handleInputChange('amount', e.target.value)}
+          max={maxLoanAmount}
         />
-        <p className="text-sm text-gray-600">Maximum eligible: ₦500,000</p>
+        <p className="text-sm text-gray-600">
+          Maximum eligible: ₦{maxLoanAmount.toLocaleString()}
+        </p>
+        {formData.amount && (
+          <div className="p-3 bg-green-50 rounded-lg">
+            <p className="text-sm font-medium text-green-800">
+              Weekly Payment: ₦{calculateWeeklyPayment(parseInt(formData.amount)).toLocaleString()}
+            </p>
+            <p className="text-xs text-green-600">
+              You can pay up to 4 weeks in advance to avoid fines
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -78,21 +134,6 @@ const LoanApplication = ({ user, onNavigate }: LoanApplicationProps) => {
             <SelectItem value="medical">Medical Emergency</SelectItem>
             <SelectItem value="agriculture">Agriculture</SelectItem>
             <SelectItem value="other">Other</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="duration">Repayment Period</Label>
-        <Select onValueChange={(value) => handleInputChange('duration', value)}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select duration" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="3">3 months</SelectItem>
-            <SelectItem value="6">6 months</SelectItem>
-            <SelectItem value="12">12 months</SelectItem>
-            <SelectItem value="24">24 months</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -114,65 +155,96 @@ const LoanApplication = ({ user, onNavigate }: LoanApplicationProps) => {
       <div className="text-center mb-6">
         <Users className="h-12 w-12 mx-auto text-blue-600 mb-2" />
         <h3 className="text-lg font-semibold">Select Your Guarantors</h3>
-        <p className="text-sm text-gray-600">Choose 2 active members as guarantors</p>
+        <p className="text-sm text-gray-600">
+          Guarantors must have combined balance of ₦{parseInt(formData.amount || '0').toLocaleString()}
+        </p>
       </div>
 
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label>First Guarantor</Label>
-          <Select onValueChange={(value) => handleInputChange('guarantor1', value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select first guarantor" />
-            </SelectTrigger>
-            <SelectContent>
-              {guarantors.map(guarantor => (
-                <SelectItem key={guarantor.id} value={guarantor.id}>
-                  {guarantor.name} (Member since {guarantor.memberSince})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="guarantor1Phone">First Guarantor Phone</Label>
+          <Label>First Guarantor Account Number</Label>
           <Input
-            id="guarantor1Phone"
-            type="tel"
-            placeholder="Enter phone number"
-            value={formData.guarantor1Phone}
-            onChange={(e) => handleInputChange('guarantor1Phone', e.target.value)}
+            placeholder="Enter account number"
+            value={guarantor1Account}
+            onChange={(e) => {
+              setGuarantor1Account(e.target.value);
+              if (e.target.value.length === 10) {
+                lookupGuarantor(e.target.value, 1);
+              } else {
+                setGuarantor1(null);
+              }
+            }}
           />
+          {guarantor1 && (
+            <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-green-600" />
+                <span className="font-medium text-green-800">{guarantor1.name}</span>
+              </div>
+              <p className="text-sm text-green-600">
+                Balance: ₦{guarantor1.balance.toLocaleString()}
+              </p>
+            </div>
+          )}
+          {guarantor1Account.length === 10 && !guarantor1 && (
+            <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-red-600" />
+                <span className="text-red-800">Account not found</span>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="space-y-2">
-          <Label>Second Guarantor</Label>
-          <Select onValueChange={(value) => handleInputChange('guarantor2', value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select second guarantor" />
-            </SelectTrigger>
-            <SelectContent>
-              {guarantors
-                .filter(g => g.id !== formData.guarantor1)
-                .map(guarantor => (
-                  <SelectItem key={guarantor.id} value={guarantor.id}>
-                    {guarantor.name} (Member since {guarantor.memberSince})
-                  </SelectItem>
-                ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="guarantor2Phone">Second Guarantor Phone</Label>
+          <Label>Second Guarantor Account Number</Label>
           <Input
-            id="guarantor2Phone"
-            type="tel"
-            placeholder="Enter phone number"
-            value={formData.guarantor2Phone}
-            onChange={(e) => handleInputChange('guarantor2Phone', e.target.value)}
+            placeholder="Enter account number"
+            value={guarantor2Account}
+            onChange={(e) => {
+              setGuarantor2Account(e.target.value);
+              if (e.target.value.length === 10) {
+                lookupGuarantor(e.target.value, 2);
+              } else {
+                setGuarantor2(null);
+              }
+            }}
           />
+          {guarantor2 && (
+            <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-green-600" />
+                <span className="font-medium text-green-800">{guarantor2.name}</span>
+              </div>
+              <p className="text-sm text-green-600">
+                Balance: ₦{guarantor2.balance.toLocaleString()}
+              </p>
+            </div>
+          )}
+          {guarantor2Account.length === 10 && !guarantor2 && (
+            <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-red-600" />
+                <span className="text-red-800">Account not found</span>
+              </div>
+            </div>
+          )}
         </div>
+
+        {guarantor1 && guarantor2 && (
+          <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <h4 className="font-medium text-blue-900 mb-2">Guarantor Summary</h4>
+            <div className="text-sm text-blue-800 space-y-1">
+              <p>Combined Balance: ₦{(guarantor1.balance + guarantor2.balance).toLocaleString()}</p>
+              <p>Required: ₦{parseInt(formData.amount || '0').toLocaleString()}</p>
+              {canApprove() ? (
+                <p className="text-green-600 font-medium">✓ Sufficient guarantor balance</p>
+              ) : (
+                <p className="text-red-600 font-medium">✗ Insufficient guarantor balance</p>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -187,24 +259,34 @@ const LoanApplication = ({ user, onNavigate }: LoanApplicationProps) => {
           <div className="space-y-1 text-sm">
             <p><span className="font-medium">Amount:</span> ₦{parseInt(formData.amount || '0').toLocaleString()}</p>
             <p><span className="font-medium">Purpose:</span> {formData.purpose}</p>
-            <p><span className="font-medium">Duration:</span> {formData.duration} months</p>
-            <p><span className="font-medium">Interest Rate:</span> 2.5% per month</p>
+            <p><span className="font-medium">Interest Rate:</span> 0%</p>
+            <p><span className="font-medium">Duration:</span> 24 weeks</p>
           </div>
         </div>
 
         <div className="p-4 bg-gray-50 rounded-lg">
           <h4 className="font-medium mb-2">Guarantors</h4>
           <div className="space-y-1 text-sm">
-            <p><span className="font-medium">First:</span> {guarantors.find(g => g.id === formData.guarantor1)?.name}</p>
-            <p><span className="font-medium">Second:</span> {guarantors.find(g => g.id === formData.guarantor2)?.name}</p>
+            <p><span className="font-medium">First:</span> {guarantor1?.name}</p>
+            <p><span className="font-medium">Second:</span> {guarantor2?.name}</p>
           </div>
         </div>
 
         <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
           <h4 className="font-medium text-blue-900 mb-2">Repayment Schedule</h4>
-          <div className="text-sm text-blue-800">
-            <p>Monthly Payment: ₦{Math.ceil((parseInt(formData.amount || '0') * 1.025) / parseInt(formData.duration || '1')).toLocaleString()}</p>
-            <p>Total Repayment: ₦{Math.ceil(parseInt(formData.amount || '0') * 1.025 * parseInt(formData.duration || '1')).toLocaleString()}</p>
+          <div className="text-sm text-blue-800 space-y-1">
+            <p>Weekly Payment: ₦{calculateWeeklyPayment(parseInt(formData.amount || '0')).toLocaleString()}</p>
+            <p>Total Duration: 24 weeks</p>
+            <p>Total Repayment: ₦{parseInt(formData.amount || '0').toLocaleString()} (0% interest)</p>
+          </div>
+        </div>
+
+        <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
+          <h4 className="font-medium text-orange-900 mb-2">Important Notes</h4>
+          <div className="text-sm text-orange-800 space-y-1">
+            <p>• You can pay up to 4 weeks in advance</p>
+            <p>• Late payments incur 2% fine of loan amount</p>
+            <p>• Payments less than 50% of expected amount go to savings and incur fine</p>
           </div>
         </div>
       </div>
@@ -298,7 +380,7 @@ const LoanApplication = ({ user, onNavigate }: LoanApplicationProps) => {
             </CardTitle>
             <CardDescription>
               {currentStep === 1 && 'Enter your loan requirements'}
-              {currentStep === 2 && 'Select two guarantors for your loan'}
+              {currentStep === 2 && 'Enter guarantor account numbers'}
               {currentStep === 3 && 'Verify all details before submission'}
               {currentStep === 4 && 'Your application is being processed'}
             </CardDescription>
@@ -319,6 +401,10 @@ const LoanApplication = ({ user, onNavigate }: LoanApplicationProps) => {
                 <Button 
                   onClick={currentStep === 3 ? handleSubmit : handleNext}
                   className="flex-1"
+                  disabled={
+                    (currentStep === 1 && (!formData.amount || !formData.purpose)) ||
+                    (currentStep === 2 && (!guarantor1 || !guarantor2 || !canApprove()))
+                  }
                 >
                   {currentStep === 3 ? 'Submit Application' : 'Next'}
                 </Button>

@@ -15,8 +15,9 @@ interface Loan {
   applicationDate: string;
   status: 'pending' | 'approved' | 'rejected' | 'repaid';
   guarantors: string[];
-  repaymentPeriod: number;
-  interestRate: number;
+  weeklyPayment: number;
+  weeksRemaining: number;
+  fines: number;
 }
 
 const LoansManagement = () => {
@@ -32,8 +33,9 @@ const LoansManagement = () => {
       applicationDate: '2024-06-15',
       status: 'pending',
       guarantors: ['Alice Johnson', 'Bob Williams'],
-      repaymentPeriod: 12,
-      interestRate: 10
+      weeklyPayment: 6250,
+      weeksRemaining: 24,
+      fines: 0
     },
     {
       id: 2,
@@ -44,8 +46,9 @@ const LoansManagement = () => {
       applicationDate: '2024-06-10',
       status: 'approved',
       guarantors: ['John Doe', 'Carol Davis'],
-      repaymentPeriod: 18,
-      interestRate: 10
+      weeklyPayment: 8334,
+      weeksRemaining: 18,
+      fines: 0
     },
     {
       id: 3,
@@ -56,8 +59,9 @@ const LoansManagement = () => {
       applicationDate: '2024-06-08',
       status: 'repaid',
       guarantors: ['John Doe'],
-      repaymentPeriod: 6,
-      interestRate: 8
+      weeklyPayment: 3125,
+      weeksRemaining: 0,
+      fines: 1500
     }
   ];
 
@@ -70,10 +74,10 @@ const LoansManagement = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'pending': return 'bg-blue-100 text-blue-800';
       case 'approved': return 'bg-green-100 text-green-800';
       case 'rejected': return 'bg-red-100 text-red-800';
-      case 'repaid': return 'bg-blue-100 text-blue-800';
+      case 'repaid': return 'bg-cyan-100 text-cyan-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -83,7 +87,7 @@ const LoansManagement = () => {
       case 'pending': return <Clock className="h-4 w-4" />;
       case 'approved': return <CheckCircle className="h-4 w-4 text-green-600" />;
       case 'rejected': return <XCircle className="h-4 w-4 text-red-600" />;
-      case 'repaid': return <CheckCircle className="h-4 w-4 text-blue-600" />;
+      case 'repaid': return <CheckCircle className="h-4 w-4 text-cyan-600" />;
       default: return <Clock className="h-4 w-4" />;
     }
   };
@@ -129,10 +133,14 @@ const LoansManagement = () => {
                           <p><span className="font-medium">Amount:</span> {formatCurrency(loan.amount)}</p>
                           <p><span className="font-medium">Purpose:</span> {loan.purpose}</p>
                           <p><span className="font-medium">Applied:</span> {loan.applicationDate}</p>
+                          {loan.fines > 0 && (
+                            <p><span className="font-medium text-red-600">Fines:</span> {formatCurrency(loan.fines)}</p>
+                          )}
                         </div>
                         <div>
-                          <p><span className="font-medium">Repayment:</span> {loan.repaymentPeriod} months</p>
-                          <p><span className="font-medium">Interest:</span> {loan.interestRate}%</p>
+                          <p><span className="font-medium">Weekly Payment:</span> {formatCurrency(loan.weeklyPayment)}</p>
+                          <p><span className="font-medium">Weeks Remaining:</span> {loan.weeksRemaining}</p>
+                          <p><span className="font-medium">Interest Rate:</span> 0%</p>
                           <p><span className="font-medium">Guarantors:</span> {loan.guarantors.join(', ')}</p>
                         </div>
                       </div>
