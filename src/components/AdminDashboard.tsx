@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,6 +18,7 @@ import {
   BarChart3
 } from 'lucide-react';
 import { Screen } from '@/pages/Index';
+import { useAppState } from '@/hooks/useAppState';
 import MembersManagement from './admin/MembersManagement';
 import LoansManagement from './admin/LoansManagement';
 import SavingsManagement from './admin/SavingsManagement';
@@ -38,6 +38,7 @@ type AdminScreen = 'dashboard' | 'members' | 'loans' | 'savings' | 'approvals' |
 const AdminDashboard = ({ user, onNavigate, onLogout }: AdminDashboardProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeScreen, setActiveScreen] = useState<AdminScreen>('dashboard');
+  const { stats, activities, approveApplication, rejectApplication } = useAppState();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-NG', {
@@ -46,52 +47,43 @@ const AdminDashboard = ({ user, onNavigate, onLogout }: AdminDashboardProps) => 
     }).format(amount);
   };
 
-  const stats = [
+  const statsData = [
     {
       title: 'Total Members',
-      value: '1,247',
-      change: '+12',
+      value: stats.totalMembers.toString(),
+      change: `+${stats.totalMembers > 0 ? Math.floor(stats.totalMembers * 0.1) : 0}`,
       icon: Users,
       color: 'text-primary',
-      bgColor: 'card-members'
+      bgColor: 'card-members',
+      onClick: () => setActiveScreen('members')
     },
     {
       title: 'Active Loans',
-      value: formatCurrency(12500000),
-      change: '+5.2%',
+      value: formatCurrency(stats.activeLoanAmount),
+      change: `${stats.activeLoans} loans`,
       icon: CreditCard,
       color: 'text-primary',
-      bgColor: 'card-loans'
+      bgColor: 'card-loans',
+      onClick: () => setActiveScreen('loans')
     },
     {
       title: 'Total Savings',
-      value: formatCurrency(45800000),
+      value: formatCurrency(stats.totalSavings),
       change: '+8.1%',
       icon: TrendingUp,
       color: 'text-primary',
-      bgColor: 'card-savings'
+      bgColor: 'card-savings',
+      onClick: () => setActiveScreen('savings')
     },
     {
       title: 'Pending Approvals',
-      value: '23',
-      change: '+3',
+      value: stats.pendingApprovals.toString(),
+      change: `+${Math.floor(stats.pendingApprovals * 0.5)}`,
       icon: AlertTriangle,
       color: 'text-primary',
-      bgColor: 'card-approvals'
+      bgColor: 'card-approvals',
+      onClick: () => setActiveScreen('approvals')
     }
-  ];
-
-  const recentActivities = [
-    { id: 1, type: 'loan', description: 'New loan application from John Doe', amount: formatCurrency(150000), time: '2 min ago' },
-    { id: 2, type: 'member', description: 'New member registration: Alice Johnson', amount: '', time: '15 min ago' },
-    { id: 3, type: 'payment', description: 'Loan repayment from Bob Williams', amount: formatCurrency(25000), time: '1 hour ago' },
-    { id: 4, type: 'savings', description: 'Savings deposit from Carol Davis', amount: formatCurrency(50000), time: '2 hours ago' },
-  ];
-
-  const pendingApprovals = [
-    { id: 1, member: 'John Doe', type: 'Loan Application', amount: formatCurrency(150000), status: 'pending' },
-    { id: 2, member: 'Alice Johnson', type: 'Membership', amount: '', status: 'pending' },
-    { id: 3, member: 'Bob Williams', type: 'Loan Extension', amount: formatCurrency(75000), status: 'pending' },
   ];
 
   const menuItems = [
@@ -130,8 +122,12 @@ const AdminDashboard = ({ user, onNavigate, onLogout }: AdminDashboardProps) => 
           <div className="animate-fade-in-up">
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              {stats.map((stat, index) => (
-                <Card key={index} className={`${stat.bgColor} hover:shadow-lg transition-all duration-200`}>
+              {statsData.map((stat, index) => (
+                <Card 
+                  key={index} 
+                  className={`${stat.bgColor} hover:shadow-lg transition-all duration-200 cursor-pointer`}
+                  onClick={stat.onClick}
+                >
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
@@ -157,7 +153,7 @@ const AdminDashboard = ({ user, onNavigate, onLogout }: AdminDashboardProps) => 
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {recentActivities.map((activity) => (
+                    {activities.slice(0, 6).map((activity) => (
                       <div key={activity.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <div className="flex-1">
                           <p className="font-medium text-sm">{activity.description}</p>
@@ -174,31 +170,45 @@ const AdminDashboard = ({ user, onNavigate, onLogout }: AdminDashboardProps) => 
                 </CardContent>
               </Card>
 
-              {/* Pending Approvals */}
+              {/* Quick Actions */}
               <Card className="glass-card">
                 <CardHeader>
-                  <CardTitle className="text-purple-700">Pending Approvals</CardTitle>
-                  <CardDescription>Items requiring your attention</CardDescription>
+                  <CardTitle className="text-purple-700">Quick Actions</CardTitle>
+                  <CardDescription>Common administrative tasks</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {pendingApprovals.map((item) => (
-                      <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div className="flex-1">
-                          <p className="font-medium text-sm">{item.member}</p>
-                          <p className="text-xs text-gray-600">{item.type}</p>
-                          {item.amount && <p className="text-xs text-purple-600 font-medium">{item.amount}</p>}
-                        </div>
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline" className="text-xs px-2 py-1">
-                            Reject
-                          </Button>
-                          <Button size="sm" className="text-xs px-2 py-1 bg-purple-600 hover:bg-purple-700">
-                            Approve
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="space-y-3">
+                    <Button 
+                      className="w-full justify-start gap-3 bg-purple-600 hover:bg-purple-700"
+                      onClick={() => setActiveScreen('members')}
+                    >
+                      <Users className="h-4 w-4" />
+                      Manage Members
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start gap-3"
+                      onClick={() => setActiveScreen('approvals')}
+                    >
+                      <UserCheck className="h-4 w-4" />
+                      Review Approvals ({stats.pendingApprovals})
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start gap-3"
+                      onClick={() => setActiveScreen('loans')}
+                    >
+                      <CreditCard className="h-4 w-4" />
+                      Loan Management
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start gap-3"
+                      onClick={() => setActiveScreen('savings')}
+                    >
+                      <DollarSign className="h-4 w-4" />
+                      Savings Overview
+                    </Button>
                   </div>
                 </CardContent>
               </Card>

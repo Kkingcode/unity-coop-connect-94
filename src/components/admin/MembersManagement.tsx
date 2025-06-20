@@ -1,64 +1,21 @@
 
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Search, Plus, Eye, Edit, UserCheck, UserX } from 'lucide-react';
+import { useAppState, Member } from '@/hooks/useAppState';
 import NewMemberApplication from '../NewMemberApplication';
-
-interface Member {
-  id: number;
-  name: string;
-  membershipId: string;
-  email: string;
-  phone: string;
-  joinDate: string;
-  status: 'active' | 'inactive' | 'suspended';
-  balance: number;
-  loanBalance: number;
-}
+import MemberDetailsModal from './MemberDetailsModal';
 
 const MembersManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [showNewMemberForm, setShowNewMemberForm] = useState(false);
-
-  const members: Member[] = [
-    {
-      id: 1,
-      name: 'John Doe',
-      membershipId: 'MEM001',
-      email: 'john@example.com',
-      phone: '+234 800 123 4567',
-      joinDate: '2023-01-15',
-      status: 'active',
-      balance: 450000,
-      loanBalance: 150000
-    },
-    {
-      id: 2,
-      name: 'Alice Johnson',
-      membershipId: 'MEM002',
-      email: 'alice@example.com',
-      phone: '+234 800 234 5678',
-      joinDate: '2023-02-20',
-      status: 'active',
-      balance: 320000,
-      loanBalance: 0
-    },
-    {
-      id: 3,
-      name: 'Bob Williams',
-      membershipId: 'MEM003',
-      email: 'bob@example.com',
-      phone: '+234 800 345 6789',
-      joinDate: '2023-03-10',
-      status: 'suspended',
-      balance: 125000,
-      loanBalance: 75000
-    }
-  ];
+  const [showMemberDetails, setShowMemberDetails] = useState(false);
+  
+  const { members } = useAppState();
 
   const filteredMembers = members.filter(member =>
     member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -79,6 +36,11 @@ const MembersManagement = () => {
       case 'suspended': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const handleViewMember = (member: Member) => {
+    setSelectedMember(member);
+    setShowMemberDetails(true);
   };
 
   if (showNewMemberForm) {
@@ -126,6 +88,9 @@ const MembersManagement = () => {
                   <div className="flex items-center gap-3 mb-2">
                     <h3 className="font-semibold text-lg">{member.name}</h3>
                     <Badge className={getStatusColor(member.status)}>{member.status}</Badge>
+                    {member.loanBalance > 0 && (
+                      <Badge className="bg-red-100 text-red-800 animate-pulse">ON LOAN</Badge>
+                    )}
                   </div>
                   <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
                     <div>
@@ -144,7 +109,7 @@ const MembersManagement = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setSelectedMember(member)}
+                    onClick={() => handleViewMember(member)}
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
@@ -166,6 +131,15 @@ const MembersManagement = () => {
           </Card>
         ))}
       </div>
+
+      <MemberDetailsModal 
+        member={selectedMember}
+        isOpen={showMemberDetails}
+        onClose={() => {
+          setShowMemberDetails(false);
+          setSelectedMember(null);
+        }}
+      />
     </div>
   );
 };

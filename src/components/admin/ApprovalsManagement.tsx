@@ -5,62 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CheckCircle, XCircle, Clock, User, CreditCard } from 'lucide-react';
-
-interface Approval {
-  id: number;
-  type: 'membership' | 'loan' | 'withdrawal';
-  applicantName: string;
-  amount?: number;
-  applicationDate: string;
-  status: 'pending' | 'approved' | 'rejected';
-  details: string;
-  priority: 'high' | 'medium' | 'low';
-}
+import { useAppState } from '@/hooks/useAppState';
 
 const ApprovalsManagement = () => {
   const [activeTab, setActiveTab] = useState('pending');
-
-  const approvals: Approval[] = [
-    {
-      id: 1,
-      type: 'loan',
-      applicantName: 'John Doe',
-      amount: 150000,
-      applicationDate: '2024-06-18',
-      status: 'pending',
-      details: 'Business expansion loan with 2 guarantors',
-      priority: 'high'
-    },
-    {
-      id: 2,
-      type: 'membership',
-      applicantName: 'Sarah Wilson',
-      applicationDate: '2024-06-17',
-      status: 'pending',
-      details: 'New member registration - Teacher',
-      priority: 'medium'
-    },
-    {
-      id: 3,
-      type: 'withdrawal',
-      applicantName: 'Bob Williams',
-      amount: 50000,
-      applicationDate: '2024-06-16',
-      status: 'pending',
-      details: 'Emergency withdrawal request',
-      priority: 'high'
-    },
-    {
-      id: 4,
-      type: 'loan',
-      applicantName: 'Alice Johnson',
-      amount: 75000,
-      applicationDate: '2024-06-15',
-      status: 'approved',
-      details: 'Home improvement loan',
-      priority: 'medium'
-    }
-  ];
+  const { approvals, stats, approveApplication, rejectApplication } = useAppState();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-NG', {
@@ -102,6 +51,14 @@ const ApprovalsManagement = () => {
 
   const pendingCount = approvals.filter(a => a.status === 'pending').length;
   const highPriorityCount = approvals.filter(a => a.priority === 'high' && a.status === 'pending').length;
+
+  const handleApprove = (approvalId: number) => {
+    approveApplication(approvalId);
+  };
+
+  const handleReject = (approvalId: number) => {
+    rejectApplication(approvalId);
+  };
 
   return (
     <div className="animate-slide-in-right">
@@ -163,6 +120,11 @@ const ApprovalsManagement = () => {
                         <Badge className={getPriorityColor(approval.priority)}>
                           {approval.priority} priority
                         </Badge>
+                        <Badge className={approval.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                                       approval.status === 'approved' ? 'bg-green-100 text-green-800' : 
+                                       'bg-red-100 text-red-800'}>
+                          {approval.status}
+                        </Badge>
                       </div>
                       <div className="text-sm text-gray-600 mb-2">
                         <p>{approval.details}</p>
@@ -176,11 +138,20 @@ const ApprovalsManagement = () => {
 
                   {approval.status === 'pending' && (
                     <div className="flex gap-2 justify-end">
-                      <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                      <Button 
+                        size="sm" 
+                        className="bg-green-600 hover:bg-green-700"
+                        onClick={() => handleApprove(approval.id)}
+                      >
                         <CheckCircle className="h-4 w-4 mr-2" />
                         Approve
                       </Button>
-                      <Button variant="outline" size="sm" className="text-red-600 border-red-300">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="text-red-600 border-red-300"
+                        onClick={() => handleReject(approval.id)}
+                      >
                         <XCircle className="h-4 w-4 mr-2" />
                         Reject
                       </Button>
