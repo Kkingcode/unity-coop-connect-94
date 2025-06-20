@@ -1,11 +1,9 @@
 
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Search, Filter, Download, Wallet, TrendingUp, TrendingDown } from 'lucide-react';
+import { ArrowLeft, TrendingUp, TrendingDown, CreditCard, DollarSign, Calendar } from 'lucide-react';
 import { Screen } from '@/pages/Index';
 
 interface TransactionHistoryProps {
@@ -13,98 +11,64 @@ interface TransactionHistoryProps {
   onNavigate: (screen: Screen) => void;
 }
 
-const TransactionHistory = ({ user, onNavigate }: TransactionHistoryProps) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('all');
+interface Transaction {
+  id: number;
+  type: 'deposit' | 'withdrawal' | 'loan' | 'repayment';
+  amount: number;
+  description: string;
+  date: string;
+  status: 'completed' | 'pending' | 'failed';
+  reference: string;
+}
 
-  const transactions = [
+const TransactionHistory = ({ user, onNavigate }: TransactionHistoryProps) => {
+  const [filterType, setFilterType] = useState<string>('all');
+
+  const transactions: Transaction[] = [
     {
-      id: '001',
-      date: '2024-06-18',
-      time: '14:30',
-      type: 'Credit',
-      category: 'Savings',
-      description: 'Monthly Savings Deposit',
+      id: 1,
+      type: 'deposit',
       amount: 50000,
-      balance: 175000,
-      status: 'Completed'
+      description: 'Monthly savings contribution',
+      date: '2024-06-20',
+      status: 'completed',
+      reference: 'DEP001'
     },
     {
-      id: '002',
+      id: 2,
+      type: 'loan',
+      amount: 150000,
+      description: 'Business expansion loan',
       date: '2024-06-15',
-      time: '10:15',
-      type: 'Debit',
-      category: 'Loan',
-      description: 'Loan Repayment - June',
-      amount: -15000,
-      balance: 125000,
-      status: 'Completed'
+      status: 'completed',
+      reference: 'LON001'
     },
     {
-      id: '003',
-      date: '2024-06-10',
-      time: '09:45',
-      type: 'Credit',
-      category: 'Dividend',
-      description: 'Quarterly Dividend Payment',
+      id: 3,
+      type: 'repayment',
+      amount: 6250,
+      description: 'Weekly loan repayment',
+      date: '2024-06-18',
+      status: 'completed',
+      reference: 'REP001'
+    },
+    {
+      id: 4,
+      type: 'deposit',
       amount: 25000,
-      balance: 140000,
-      status: 'Completed'
+      description: 'Special savings',
+      date: '2024-06-10',
+      status: 'completed',
+      reference: 'DEP002'
     },
     {
-      id: '004',
-      date: '2024-06-05',
-      time: '16:20',
-      type: 'Debit',
-      category: 'Fine',
-      description: 'Late Payment Fine',
-      amount: -2000,
-      balance: 115000,
-      status: 'Completed'
-    },
-    {
-      id: '005',
-      date: '2024-06-01',
-      time: '11:30',
-      type: 'Credit',
-      category: 'Loan',
-      description: 'Loan Disbursement',
-      amount: 100000,
-      balance: 117000,
-      status: 'Completed'
-    },
-    {
-      id: '006',
-      date: '2024-05-30',
-      time: '13:15',
-      type: 'Credit',
-      category: 'Savings',
-      description: 'Weekly Savings',
-      amount: 12000,
-      balance: 17000,
-      status: 'Completed'
-    },
-    {
-      id: '007',
-      date: '2024-05-25',
-      time: '08:45',
-      type: 'Debit',
-      category: 'Withdrawal',
-      description: 'Emergency Withdrawal',
-      amount: -8000,
-      balance: 5000,
-      status: 'Completed'
-    },
-    {
-      id: '008',
-      date: '2024-05-20',
-      time: '15:30',
-      type: 'Credit',
-      category: 'Savings',
-      description: 'Monthly Contribution',
-      amount: 35000,
-      balance: 13000,
-      status: 'Completed'
+      id: 5,
+      type: 'withdrawal',
+      amount: 20000,
+      description: 'Emergency withdrawal',
+      date: '2024-06-08',
+      status: 'pending',
+      reference: 'WTH001'
     }
   ];
 
@@ -112,35 +76,53 @@ const TransactionHistory = ({ user, onNavigate }: TransactionHistoryProps) => {
     return new Intl.NumberFormat('en-NG', {
       style: 'currency',
       currency: 'NGN',
-    }).format(Math.abs(amount));
+    }).format(amount);
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
+  const getTransactionIcon = (type: string) => {
+    switch (type) {
+      case 'deposit': return <TrendingUp className="h-4 w-4 text-green-600" />;
+      case 'withdrawal': return <TrendingDown className="h-4 w-4 text-red-600" />;
+      case 'loan': return <CreditCard className="h-4 w-4 text-blue-600" />;
+      case 'repayment': return <DollarSign className="h-4 w-4 text-purple-600" />;
+      default: return <Calendar className="h-4 w-4" />;
+    }
   };
 
-  const filteredTransactions = transactions.filter(transaction => {
-    const matchesSearch = transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         transaction.category.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterType === 'all' || transaction.type.toLowerCase() === filterType;
-    return matchesSearch && matchesFilter;
-  });
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'bg-green-100 text-green-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'failed': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
 
-  const totalCredits = transactions
-    .filter(t => t.type === 'Credit')
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'deposit': return 'bg-green-100 text-green-800';
+      case 'withdrawal': return 'bg-red-100 text-red-800';
+      case 'loan': return 'bg-blue-100 text-blue-800';
+      case 'repayment': return 'bg-purple-100 text-purple-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const filteredTransactions = filterType === 'all' 
+    ? transactions 
+    : transactions.filter(t => t.type === filterType);
+
+  const totalDeposits = transactions
+    .filter(t => t.type === 'deposit' && t.status === 'completed')
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const totalDebits = transactions
-    .filter(t => t.type === 'Debit')
-    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+  const totalWithdrawals = transactions
+    .filter(t => t.type === 'withdrawal' && t.status === 'completed')
+    .reduce((sum, t) => sum + t.amount, 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-slate-50 p-4">
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
           <Button
@@ -151,138 +133,118 @@ const TransactionHistory = ({ user, onNavigate }: TransactionHistoryProps) => {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">Transaction History</h1>
-            <p className="text-gray-600">View all your account activities</p>
+            <h1 className="text-2xl font-bold text-gray-900">Transaction History</h1>
+            <p className="text-gray-600">View all your financial transactions</p>
           </div>
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Card className="glass-card">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <TrendingUp className="h-5 w-5 text-green-600" />
-                </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <Card className="card-savings">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Total Credits</p>
-                  <p className="text-lg font-bold text-green-600">{formatCurrency(totalCredits)}</p>
+                  <p className="text-sm font-medium text-gray-600">Total Deposits</p>
+                  <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalDeposits)}</p>
                 </div>
+                <TrendingUp className="h-8 w-8 text-green-600" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="glass-card">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-red-100 rounded-lg">
-                  <TrendingDown className="h-5 w-5 text-red-600" />
-                </div>
+          <Card className="card-loans">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Total Debits</p>
-                  <p className="text-lg font-bold text-red-600">{formatCurrency(totalDebits)}</p>
+                  <p className="text-sm font-medium text-gray-600">Total Withdrawals</p>
+                  <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalWithdrawals)}</p>
                 </div>
+                <TrendingDown className="h-8 w-8 text-red-600" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="glass-card">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Wallet className="h-5 w-5 text-blue-600" />
-                </div>
+          <Card className="card-members">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Net Balance</p>
-                  <p className="text-lg font-bold text-blue-600">{formatCurrency(totalCredits - totalDebits)}</p>
+                  <p className="text-sm font-medium text-gray-600">Net Balance</p>
+                  <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalDeposits - totalWithdrawals)}</p>
                 </div>
+                <DollarSign className="h-8 w-8 text-primary" />
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Filters */}
+        {/* Filter Tabs */}
         <Card className="glass-card mb-6">
           <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                <Input
-                  placeholder="Search transactions..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger className="w-full md:w-48">
-                  <SelectValue placeholder="Filter by type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="credit">Credits Only</SelectItem>
-                  <SelectItem value="debit">Debits Only</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button variant="outline" className="w-full md:w-auto">
-                <Download className="h-4 w-4 mr-2" />
-                Export
-              </Button>
+            <div className="flex gap-2 flex-wrap">
+              {['all', 'deposit', 'withdrawal', 'loan', 'repayment'].map((type) => (
+                <Button
+                  key={type}
+                  variant={filterType === type ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setFilterType(type)}
+                  className={filterType === type ? 'bg-primary text-white' : ''}
+                >
+                  {type.charAt(0).toUpperCase() + type.slice(1)}
+                </Button>
+              ))}
             </div>
           </CardContent>
         </Card>
 
         {/* Transaction List */}
-        <Card className="glass-card">
-          <CardHeader>
-            <CardTitle>Recent Transactions</CardTitle>
-            <CardDescription>
-              {filteredTransactions.length} of {transactions.length} transactions
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="divide-y divide-gray-100">
-              {filteredTransactions.map((transaction, index) => (
-                <div key={transaction.id} className="p-4 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                        transaction.type === 'Credit' ? 'bg-green-100' : 'bg-red-100'
-                      }`}>
-                        <Wallet className={`h-6 w-6 ${
-                          transaction.type === 'Credit' ? 'text-green-600' : 'text-red-600'
-                        }`} />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className="font-medium">{transaction.description}</p>
-                          <Badge variant="secondary" className="text-xs">
-                            {transaction.category}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-4 text-sm text-gray-600">
-                          <span>{formatDate(transaction.date)}</span>
-                          <span>{transaction.time}</span>
-                          <span className="text-green-600">#{transaction.id}</span>
-                        </div>
-                      </div>
+        <div className="space-y-4">
+          {filteredTransactions.map((transaction) => (
+            <Card key={transaction.id} className="glass-card hover:shadow-lg transition-all duration-200">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-gray-100 rounded-lg">
+                      {getTransactionIcon(transaction.type)}
                     </div>
-                    <div className="text-right">
-                      <p className={`text-lg font-bold ${
-                        transaction.type === 'Credit' ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {transaction.type === 'Credit' ? '+' : '-'}{formatCurrency(transaction.amount)}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        Balance: {formatCurrency(transaction.balance)}
-                      </p>
+                    <div>
+                      <h3 className="font-semibold text-lg">{transaction.description}</h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge className={getTypeColor(transaction.type)}>
+                          {transaction.type}
+                        </Badge>
+                        <Badge className={getStatusColor(transaction.status)}>
+                          {transaction.status}
+                        </Badge>
+                        <span className="text-sm text-gray-500">Ref: {transaction.reference}</span>
+                      </div>
+                      <p className="text-sm text-gray-600 mt-1">{transaction.date}</p>
                     </div>
                   </div>
+                  <div className="text-right">
+                    <p className={`text-xl font-bold ${
+                      transaction.type === 'deposit' || transaction.type === 'loan' 
+                        ? 'text-green-600' 
+                        : 'text-red-600'
+                    }`}>
+                      {transaction.type === 'deposit' || transaction.type === 'loan' ? '+' : '-'}
+                      {formatCurrency(transaction.amount)}
+                    </p>
+                  </div>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {filteredTransactions.length === 0 && (
+          <Card className="glass-card">
+            <CardContent className="p-12 text-center">
+              <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No transactions found</h3>
+              <p className="text-gray-600">No transactions match the selected filter.</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

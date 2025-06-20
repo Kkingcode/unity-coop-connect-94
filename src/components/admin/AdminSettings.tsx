@@ -3,41 +3,36 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Settings, Bell, Palette, DollarSign, Shield, Save } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Settings, Shield, Bell, Database, Users, Mail } from 'lucide-react';
+import { useAppState } from '@/hooks/useAppState';
 
 const AdminSettings = () => {
+  const [activeTab, setActiveTab] = useState('general');
+  const { addActivity } = useAppState();
+  
   const [settings, setSettings] = useState({
-    // Notification Settings
+    organizationName: 'OLORUN NI NSOGO CO-OPERATIVE SOCIETY',
+    maxLoanAmount: 500000,
+    interestRate: 0,
+    loanTerm: 24,
+    minimumSavings: 10000,
     emailNotifications: true,
     smsNotifications: false,
-    pushNotifications: true,
-    loanReminders: true,
-    paymentAlerts: true,
-    
-    // App Settings
-    defaultCurrency: 'NGN',
-    interestRate: 10,
-    maxLoanAmount: 500000,
-    minSavingsBalance: 5000,
-    
-    // Theme Settings
-    primaryColor: '#6C4AB6',
-    enableDarkMode: false,
-    
-    // Security Settings
-    sessionTimeout: 30,
-    requireTwoFactor: false,
-    passwordExpiry: 90
+    autoApproval: false,
+    backupFrequency: 'weekly'
   });
 
-  const handleSwitchChange = (key: string, value: boolean) => {
+  const handleSaveSetting = (key: string, value: any) => {
     setSettings(prev => ({ ...prev, [key]: value }));
-  };
-
-  const handleInputChange = (key: string, value: string | number) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
+    addActivity({
+      type: 'approval',
+      description: `System setting updated: ${key}`,
+      time: 'Just now'
+    });
   };
 
   const formatCurrency = (amount: number) => {
@@ -49,207 +44,219 @@ const AdminSettings = () => {
 
   return (
     <div className="animate-slide-in-right">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Admin Settings</h1>
-          <p className="text-gray-600">Configure application preferences and policies</p>
-        </div>
-        <Button className="bg-purple-600 hover:bg-purple-700">
-          <Save className="h-4 w-4 mr-2" />
-          Save Changes
-        </Button>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Admin Settings</h1>
+        <p className="text-gray-600">Configure system settings and preferences</p>
       </div>
 
-      <div className="grid gap-6">
-        {/* Notification Settings */}
-        <Card className="glass-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5" />
-              Notification Settings
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="flex justify-between items-center">
-                <div>
-                  <label className="font-medium">Email Notifications</label>
-                  <p className="text-sm text-gray-600">Receive notifications via email</p>
-                </div>
-                <Switch 
-                  checked={settings.emailNotifications}
-                  onCheckedChange={(checked) => handleSwitchChange('emailNotifications', checked)}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="general">General</TabsTrigger>
+          <TabsTrigger value="loans">Loans</TabsTrigger>
+          <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="security">Security</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="general" className="mt-6">
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                General Settings
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium mb-2">Organization Name</label>
+                <Input
+                  value={settings.organizationName}
+                  onChange={(e) => handleSaveSetting('organizationName', e.target.value)}
                 />
               </div>
               
-              <div className="flex justify-between items-center">
-                <div>
-                  <label className="font-medium">SMS Notifications</label>
-                  <p className="text-sm text-gray-600">Receive notifications via SMS</p>
-                </div>
-                <Switch 
-                  checked={settings.smsNotifications}
-                  onCheckedChange={(checked) => handleSwitchChange('smsNotifications', checked)}
-                />
-              </div>
-
-              <div className="flex justify-between items-center">
-                <div>
-                  <label className="font-medium">Push Notifications</label>
-                  <p className="text-sm text-gray-600">Browser push notifications</p>
-                </div>
-                <Switch 
-                  checked={settings.pushNotifications}
-                  onCheckedChange={(checked) => handleSwitchChange('pushNotifications', checked)}
-                />
-              </div>
-
-              <div className="flex justify-between items-center">
-                <div>
-                  <label className="font-medium">Loan Reminders</label>
-                  <p className="text-sm text-gray-600">Automatic payment reminders</p>
-                </div>
-                <Switch 
-                  checked={settings.loanReminders}
-                  onCheckedChange={(checked) => handleSwitchChange('loanReminders', checked)}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* App Configuration */}
-        <Card className="glass-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5" />
-              Application Configuration
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block font-medium mb-2">Default Currency</label>
-                <Input 
-                  value={settings.defaultCurrency}
-                  onChange={(e) => handleInputChange('defaultCurrency', e.target.value)}
-                  placeholder="NGN"
-                />
-              </div>
-
-              <div>
-                <label className="block font-medium mb-2">Default Interest Rate (%)</label>
-                <Input 
+                <label className="block text-sm font-medium mb-2">Minimum Savings Amount</label>
+                <Input
                   type="number"
-                  value={settings.interestRate}
-                  onChange={(e) => handleInputChange('interestRate', Number(e.target.value))}
+                  value={settings.minimumSavings}
+                  onChange={(e) => handleSaveSetting('minimumSavings', Number(e.target.value))}
                 />
+                <p className="text-xs text-gray-600 mt-1">
+                  Current: {formatCurrency(settings.minimumSavings)}
+                </p>
               </div>
 
               <div>
-                <label className="block font-medium mb-2">Maximum Loan Amount</label>
-                <Input 
+                <label className="block text-sm font-medium mb-2">Backup Frequency</label>
+                <select 
+                  className="w-full p-2 border rounded-lg"
+                  value={settings.backupFrequency}
+                  onChange={(e) => handleSaveSetting('backupFrequency', e.target.value)}
+                >
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </div>
+
+              <Button className="bg-primary hover:bg-primary/90">
+                Save General Settings
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="loans" className="mt-6">
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Database className="h-5 w-5" />
+                Loan Settings
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium mb-2">Maximum Loan Amount</label>
+                <Input
                   type="number"
                   value={settings.maxLoanAmount}
-                  onChange={(e) => handleInputChange('maxLoanAmount', Number(e.target.value))}
+                  onChange={(e) => handleSaveSetting('maxLoanAmount', Number(e.target.value))}
                 />
-                <p className="text-sm text-gray-600 mt-1">Current: {formatCurrency(settings.maxLoanAmount)}</p>
+                <p className="text-xs text-gray-600 mt-1">
+                  Current: {formatCurrency(settings.maxLoanAmount)}
+                </p>
               </div>
 
               <div>
-                <label className="block font-medium mb-2">Minimum Savings Balance</label>
-                <Input 
+                <label className="block text-sm font-medium mb-2">Interest Rate (%)</label>
+                <Input
                   type="number"
-                  value={settings.minSavingsBalance}
-                  onChange={(e) => handleInputChange('minSavingsBalance', Number(e.target.value))}
+                  value={settings.interestRate}
+                  onChange={(e) => handleSaveSetting('interestRate', Number(e.target.value))}
                 />
-                <p className="text-sm text-gray-600 mt-1">Current: {formatCurrency(settings.minSavingsBalance)}</p>
+                <p className="text-xs text-gray-600 mt-1">
+                  Current: {settings.interestRate}% annually
+                </p>
               </div>
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* Theme Settings */}
-        <Card className="glass-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Palette className="h-5 w-5" />
-              Theme Settings
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block font-medium mb-2">Primary Color</label>
-                <div className="flex items-center gap-3">
-                  <Input 
-                    type="color"
-                    value={settings.primaryColor}
-                    onChange={(e) => handleInputChange('primaryColor', e.target.value)}
-                    className="w-16 h-10"
-                  />
-                  <Badge style={{ backgroundColor: settings.primaryColor, color: 'white' }}>
-                    {settings.primaryColor}
-                  </Badge>
-                </div>
+                <label className="block text-sm font-medium mb-2">Default Loan Term (weeks)</label>
+                <Input
+                  type="number"
+                  value={settings.loanTerm}
+                  onChange={(e) => handleSaveSetting('loanTerm', Number(e.target.value))}
+                />
+                <p className="text-xs text-gray-600 mt-1">
+                  Current: {settings.loanTerm} weeks
+                </p>
               </div>
 
-              <div className="flex justify-between items-center">
+              <div className="flex items-center justify-between">
                 <div>
-                  <label className="font-medium">Dark Mode</label>
-                  <p className="text-sm text-gray-600">Enable dark theme</p>
+                  <label className="block text-sm font-medium">Auto-approve small loans</label>
+                  <p className="text-xs text-gray-600">Automatically approve loans under certain conditions</p>
                 </div>
-                <Switch 
-                  checked={settings.enableDarkMode}
-                  onCheckedChange={(checked) => handleSwitchChange('enableDarkMode', checked)}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Security Settings */}
-        <Card className="glass-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
-              Security Settings
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block font-medium mb-2">Session Timeout (minutes)</label>
-                <Input 
-                  type="number"
-                  value={settings.sessionTimeout}
-                  onChange={(e) => handleInputChange('sessionTimeout', Number(e.target.value))}
+                <Switch
+                  checked={settings.autoApproval}
+                  onCheckedChange={(value) => handleSaveSetting('autoApproval', value)}
                 />
               </div>
 
-              <div>
-                <label className="block font-medium mb-2">Password Expiry (days)</label>
-                <Input 
-                  type="number"
-                  value={settings.passwordExpiry}
-                  onChange={(e) => handleInputChange('passwordExpiry', Number(e.target.value))}
-                />
-              </div>
+              <Button className="bg-primary hover:bg-primary/90">
+                Save Loan Settings
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-              <div className="flex justify-between items-center md:col-span-2">
+        <TabsContent value="notifications" className="mt-6">
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="h-5 w-5" />
+                Notification Settings
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
                 <div>
-                  <label className="font-medium">Require Two-Factor Authentication</label>
-                  <p className="text-sm text-gray-600">Enhanced security for admin accounts</p>
+                  <label className="block text-sm font-medium">Email Notifications</label>
+                  <p className="text-xs text-gray-600">Send email notifications for important events</p>
                 </div>
-                <Switch 
-                  checked={settings.requireTwoFactor}
-                  onCheckedChange={(checked) => handleSwitchChange('requireTwoFactor', checked)}
+                <Switch
+                  checked={settings.emailNotifications}
+                  onCheckedChange={(value) => handleSaveSetting('emailNotifications', value)}
                 />
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="block text-sm font-medium">SMS Notifications</label>
+                  <p className="text-xs text-gray-600">Send SMS notifications for urgent matters</p>
+                </div>
+                <Switch
+                  checked={settings.smsNotifications}
+                  onCheckedChange={(value) => handleSaveSetting('smsNotifications', value)}
+                />
+              </div>
+
+              <Button className="bg-primary hover:bg-primary/90">
+                Save Notification Settings
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="security" className="mt-6">
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Security Settings
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <h4 className="font-medium mb-3">Password Requirements</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-green-100 text-green-800">✓</Badge>
+                    <span>Minimum 8 characters</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-green-100 text-green-800">✓</Badge>
+                    <span>Require uppercase and lowercase</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-green-100 text-green-800">✓</Badge>
+                    <span>Require numbers</span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-medium mb-3">Session Management</h4>
+                <p className="text-sm text-gray-600 mb-3">Configure user session timeouts and security</p>
+                <Button variant="outline" size="sm">
+                  View Active Sessions
+                </Button>
+              </div>
+
+              <div>
+                <h4 className="font-medium mb-3">Data Backup</h4>
+                <p className="text-sm text-gray-600 mb-3">Last backup: Today at 3:00 AM</p>
+                <Button variant="outline" size="sm">
+                  Backup Now
+                </Button>
+              </div>
+
+              <Button className="bg-primary hover:bg-primary/90">
+                Save Security Settings
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
