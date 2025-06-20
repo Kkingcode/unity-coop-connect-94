@@ -35,7 +35,7 @@ const MemberDetailsModal = ({ member, isOpen, onClose }: MemberDetailsModalProps
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex justify-between items-center">
             <DialogTitle className="text-2xl font-bold text-gray-900">
@@ -251,6 +251,82 @@ const MemberDetailsModal = ({ member, isOpen, onClose }: MemberDetailsModalProps
               </div>
             </CardContent>
           </Card>
+
+          {/* Signatures */}
+          {member.signatures && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Signatures
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {member.signatures.applicant && (
+                    <div className="text-center">
+                      <p className="text-sm text-gray-600 mb-2">Applicant Signature</p>
+                      <div className="border rounded-lg p-2 bg-white">
+                        <img 
+                          src={member.signatures.applicant} 
+                          alt="Applicant Signature" 
+                          className="max-w-full h-20 mx-auto object-contain"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {member.signatures.guarantor1 && (
+                    <div className="text-center">
+                      <p className="text-sm text-gray-600 mb-2">Guarantor 1 Signature</p>
+                      <div className="border rounded-lg p-2 bg-white">
+                        <img 
+                          src={member.signatures.guarantor1} 
+                          alt="Guarantor 1 Signature" 
+                          className="max-w-full h-20 mx-auto object-contain"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {member.signatures.guarantor2 && (
+                    <div className="text-center">
+                      <p className="text-sm text-gray-600 mb-2">Guarantor 2 Signature</p>
+                      <div className="border rounded-lg p-2 bg-white">
+                        <img 
+                          src={member.signatures.guarantor2} 
+                          alt="Guarantor 2 Signature" 
+                          className="max-w-full h-20 mx-auto object-contain"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {member.signatures.president && (
+                    <div className="text-center">
+                      <p className="text-sm text-gray-600 mb-2">President Signature</p>
+                      <div className="border rounded-lg p-2 bg-white">
+                        <img 
+                          src={member.signatures.president} 
+                          alt="President Signature" 
+                          className="max-w-full h-20 mx-auto object-contain"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {member.signatures.secretary && (
+                    <div className="text-center">
+                      <p className="text-sm text-gray-600 mb-2">Secretary Signature</p>
+                      <div className="border rounded-lg p-2 bg-white">
+                        <img 
+                          src={member.signatures.secretary} 
+                          alt="Secretary Signature" 
+                          className="max-w-full h-20 mx-auto object-contain"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </DialogContent>
     </Dialog>

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, ArrowRight, Upload, Download, Check } from 'lucide-react';
 import SignatureCanvas from './SignatureCanvas';
+import { generateMembershipApplicationPDF } from '../utils/pdfGenerator';
 
 interface NewMemberApplicationProps {
   onBack: () => void;
@@ -117,16 +117,59 @@ const NewMemberApplication = ({ onBack }: NewMemberApplicationProps) => {
   };
 
   const generatePDF = () => {
-    // This would integrate with a PDF generation library like jsPDF
-    console.log('Generating PDF with data:', formData, signatures);
-    // For demo purposes, we'll just show success
-    return true;
+    try {
+      const pdf = generateMembershipApplicationPDF(formData, signatures);
+      pdf.save(`${formData.fullName}_Application.pdf`);
+      return true;
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Error generating PDF. Please try again.');
+      return false;
+    }
   };
 
   const handleSubmit = () => {
     if (generatePDF()) {
       // Save to backend/cloud storage
       console.log('Application submitted successfully');
+      
+      // Add member to the system
+      const memberData = {
+        name: formData.fullName,
+        email: `${formData.fullName.toLowerCase().replace(/\s+/g, '.')}@temp.com`, // Temporary email
+        phone: formData.phoneNumber,
+        sex: formData.sex,
+        homeAddress: formData.homeAddress,
+        town: formData.townLgaState.split('/')[0]?.trim() || '',
+        lga: formData.townLgaState.split('/')[1]?.trim() || '',
+        stateOfOrigin: formData.townLgaState.split('/')[2]?.trim() || '',
+        occupation: formData.occupation,
+        jobAddress: formData.jobAddress,
+        introducedBy: formData.introducedBy,
+        status: 'active' as const,
+        nextOfKin: {
+          name: formData.nokName,
+          address: formData.nokAddress,
+          phone: formData.nokPhone,
+          altPhone: formData.nokAltPhone
+        },
+        guarantors: [
+          {
+            name: formData.guarantor1Name,
+            address: formData.guarantor1Address,
+            phone: formData.guarantor1Phone
+          },
+          {
+            name: formData.guarantor2Name,
+            address: formData.guarantor2Address,
+            phone: formData.guarantor2Phone
+          }
+        ],
+        signatures: signatures
+      };
+      
+      // This would normally add the member to the system
+      console.log('New member data:', memberData);
       onBack();
     }
   };

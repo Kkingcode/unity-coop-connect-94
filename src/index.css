@@ -3,45 +3,45 @@
 @tailwind components;
 @tailwind utilities;
 
-/* OLORUN NI NSOGO CS (ONCS) - Minimal Color Palette */
+/* OLORUN NI NSOGO CS (ONCS) - Purple & Soft Color Palette */
 
 @layer base {
   :root {
     --background: 255 255 255;
     --foreground: 51 51 51; /* #333333 */
 
-    --card: 245 245 247; /* #F5F5F7 */
+    --card: 248 250 252; /* #F8FAFC - Very light blue-grey */
     --card-foreground: 51 51 51;
 
     --popover: 255 255 255;
     --popover-foreground: 51 51 51;
 
-    --primary: 108 74 182; /* #6C4AB6 */
+    --primary: 108 74 182; /* #6C4AB6 - Purple */
     --primary-foreground: 255 255 255;
 
-    --secondary: 245 245 247;
+    --secondary: 248 250 252; /* #F8FAFC */
     --secondary-foreground: 51 51 51;
 
-    --muted: 245 245 247;
-    --muted-foreground: 51 51 51;
+    --muted: 241 245 249; /* #F1F5F9 - Light slate */
+    --muted-foreground: 71 85 105; /* #475569 */
 
-    --accent: 108 74 182;
+    --accent: 139 92 246; /* #8B5CF6 - Light purple */
     --accent-foreground: 255 255 255;
 
     --destructive: 239 68 68;
     --destructive-foreground: 254 242 242;
 
-    --border: 229 229 234;
-    --input: 229 229 234;
+    --border: 226 232 240; /* #E2E8F0 */
+    --input: 226 232 240;
     --ring: 108 74 182;
 
     --radius: 0.5rem;
 
-    /* Custom card colors - minimal palette */
-    --card-members: 245 245 247;
-    --card-loans: 245 245 247;
-    --card-savings: 245 245 247;
-    --card-approvals: 245 245 247;
+    /* Custom card colors - soft purple/blue palette */
+    --card-members: 243 244 246; /* #F3F4F6 - Warm grey */
+    --card-loans: 238 242 255; /* #EEF2FF - Very light indigo */
+    --card-savings: 240 253 244; /* #F0FDF4 - Very light green */
+    --card-approvals: 255 241 242; /* #FFF1F2 - Very light rose */
   }
 }
 
@@ -51,34 +51,34 @@
   }
 
   body {
-    @apply bg-white text-foreground font-sans;
+    @apply bg-slate-50 text-foreground font-sans;
     min-height: 100vh;
   }
 }
 
 @layer components {
   .glass-card {
-    @apply bg-card backdrop-blur-sm border border-border shadow-sm;
+    @apply bg-white/80 backdrop-blur-sm border border-slate-200 shadow-sm;
   }
   
   .gradient-primary {
-    @apply bg-primary;
+    @apply bg-gradient-to-r from-purple-600 to-indigo-600;
   }
   
   .card-members {
-    background-color: rgb(var(--card-members));
+    background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%);
   }
 
   .card-loans {
-    background-color: rgb(var(--card-loans));
+    background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
   }
 
   .card-savings {
-    background-color: rgb(var(--card-savings));
+    background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%);
   }
 
   .card-approvals {
-    background-color: rgb(var(--card-approvals));
+    background: linear-gradient(135deg, #FFF1F2 0%, #FFE4E6 100%);
   }
 }
 

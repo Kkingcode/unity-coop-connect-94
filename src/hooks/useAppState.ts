@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 
 export interface Member {
@@ -32,6 +31,13 @@ export interface Member {
   }>;
   lastPaymentDate?: string;
   lastPaymentAmount?: number;
+  signatures?: {
+    applicant?: string;
+    guarantor1?: string;
+    guarantor2?: string;
+    president?: string;
+    secretary?: string;
+  };
 }
 
 export interface Loan {
@@ -105,7 +111,14 @@ const initialMembers: Member[] = [
       { name: 'Bob Williams', address: '321 Pine Street', phone: '+234 800 777 8888' }
     ],
     lastPaymentDate: '2024-06-15',
-    lastPaymentAmount: 6250
+    lastPaymentAmount: 6250,
+    signatures: {
+      applicant: '/placeholder-signature.png',
+      guarantor1: '/placeholder-signature.png',
+      guarantor2: '/placeholder-signature.png',
+      president: '/placeholder-signature.png',
+      secretary: '/placeholder-signature.png'
+    }
   },
   {
     id: 2,
@@ -134,7 +147,14 @@ const initialMembers: Member[] = [
     guarantors: [
       { name: 'John Doe', address: '123 Main Street', phone: '+234 800 123 4567' },
       { name: 'Carol Davis', address: '654 Elm Street', phone: '+234 800 999 0000' }
-    ]
+    ],
+    signatures: {
+      applicant: '/placeholder-signature.png',
+      guarantor1: '/placeholder-signature.png',
+      guarantor2: '/placeholder-signature.png',
+      president: '/placeholder-signature.png',
+      secretary: '/placeholder-signature.png'
+    }
   },
   {
     id: 3,
@@ -164,7 +184,14 @@ const initialMembers: Member[] = [
       { name: 'John Doe', address: '123 Main Street', phone: '+234 800 123 4567' }
     ],
     lastPaymentDate: '2024-06-10',
-    lastPaymentAmount: 3125
+    lastPaymentAmount: 3125,
+    signatures: {
+      applicant: '/placeholder-signature.png',
+      guarantor1: '/placeholder-signature.png',
+      guarantor2: '/placeholder-signature.png',
+      president: '/placeholder-signature.png',
+      secretary: '/placeholder-signature.png'
+    }
   }
 ];
 
