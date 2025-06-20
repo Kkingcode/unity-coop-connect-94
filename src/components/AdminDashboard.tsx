@@ -52,7 +52,7 @@ const AdminDashboard = ({ user, onNavigate, onLogout }: AdminDashboardProps) => 
       value: '1,247',
       change: '+12',
       icon: Users,
-      color: 'text-purple-600',
+      color: 'text-primary',
       bgColor: 'card-members'
     },
     {
@@ -60,7 +60,7 @@ const AdminDashboard = ({ user, onNavigate, onLogout }: AdminDashboardProps) => 
       value: formatCurrency(12500000),
       change: '+5.2%',
       icon: CreditCard,
-      color: 'text-green-600',
+      color: 'text-primary',
       bgColor: 'card-loans'
     },
     {
@@ -68,7 +68,7 @@ const AdminDashboard = ({ user, onNavigate, onLogout }: AdminDashboardProps) => 
       value: formatCurrency(45800000),
       change: '+8.1%',
       icon: TrendingUp,
-      color: 'text-blue-600',
+      color: 'text-primary',
       bgColor: 'card-savings'
     },
     {
@@ -76,7 +76,7 @@ const AdminDashboard = ({ user, onNavigate, onLogout }: AdminDashboardProps) => 
       value: '23',
       change: '+3',
       icon: AlertTriangle,
-      color: 'text-orange-600',
+      color: 'text-primary',
       bgColor: 'card-approvals'
     }
   ];
@@ -209,12 +209,15 @@ const AdminDashboard = ({ user, onNavigate, onLogout }: AdminDashboardProps) => 
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-purple-50/30">
+    <div className="min-h-screen bg-white">
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
+      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-card shadow-xl transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
         <div className="gradient-primary p-6 border-b">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-white">ONCS Admin</h2>
+            <div>
+              <h2 className="text-xl font-bold text-white">ONCS Admin</h2>
+              <p className="text-white/80 text-sm">OLORUN NI NSOGO CS</p>
+            </div>
             <Button
               variant="ghost"
               size="icon"

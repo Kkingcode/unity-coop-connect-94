@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Search, Plus, Eye, Edit, UserCheck, UserX } from 'lucide-react';
+import NewMemberApplication from '../NewMemberApplication';
 
 interface Member {
   id: number;
@@ -21,6 +22,7 @@ interface Member {
 const MembersManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const [showNewMemberForm, setShowNewMemberForm] = useState(false);
 
   const members: Member[] = [
     {
@@ -79,14 +81,21 @@ const MembersManagement = () => {
     }
   };
 
+  if (showNewMemberForm) {
+    return <NewMemberApplication onBack={() => setShowNewMemberForm(false)} />;
+  }
+
   return (
     <div className="animate-slide-in-right">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Members Management</h1>
-          <p className="text-gray-600">Manage cooperative members and their accounts</p>
+          <h1 className="text-2xl font-bold text-foreground">Members Management</h1>
+          <p className="text-muted-foreground">Manage ONCS members and their accounts</p>
         </div>
-        <Button className="bg-purple-600 hover:bg-purple-700">
+        <Button 
+          className="bg-primary hover:bg-primary/90"
+          onClick={() => setShowNewMemberForm(true)}
+        >
           <Plus className="h-4 w-4 mr-2" />
           Add Member
         </Button>
@@ -96,7 +105,7 @@ const MembersManagement = () => {
       <Card className="glass-card mb-6">
         <CardContent className="p-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
               placeholder="Search members by name or ID..."
               value={searchTerm}
@@ -118,7 +127,7 @@ const MembersManagement = () => {
                     <h3 className="font-semibold text-lg">{member.name}</h3>
                     <Badge className={getStatusColor(member.status)}>{member.status}</Badge>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+                  <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
                     <div>
                       <p><span className="font-medium">ID:</span> {member.membershipId}</p>
                       <p><span className="font-medium">Email:</span> {member.email}</p>
