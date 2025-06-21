@@ -7,9 +7,10 @@ export interface Member {
   email: string;
   phone: string;
   joinDate: string;
-  status: 'active' | 'inactive' | 'suspended';
+  status: 'active' | 'inactive' | 'suspended' | 'dormant';
   balance: number;
   loanBalance: number;
+  investmentBalance: number;
   sex: string;
   homeAddress: string;
   town: string;
@@ -18,11 +19,13 @@ export interface Member {
   occupation: string;
   jobAddress: string;
   introducedBy: string;
+  photo?: string;
   nextOfKin: {
     name: string;
     address: string;
     phone: string;
     altPhone: string;
+    photo?: string;
   };
   guarantors: Array<{
     name: string;
@@ -31,12 +34,27 @@ export interface Member {
   }>;
   lastPaymentDate?: string;
   lastPaymentAmount?: number;
+  lastActivityDate?: string;
+  fines: number;
+  guarantorFor: Array<{
+    memberId: number;
+    memberName: string;
+    loanAmount: number;
+    remainingAmount: number;
+  }>;
   signatures?: {
     applicant?: string;
     guarantor1?: string;
     guarantor2?: string;
     president?: string;
     secretary?: string;
+  };
+  documents?: {
+    idCard?: string;
+    passportPhoto?: string;
+    nepaBill?: string;
+    registrationForm?: string;
+    nomineeForm?: string;
   };
 }
 
@@ -47,40 +65,155 @@ export interface Loan {
   amount: number;
   purpose: string;
   applicationDate: string;
-  status: 'pending' | 'approved' | 'rejected' | 'repaid';
-  guarantors: string[];
+  status: 'pending' | 'approved' | 'rejected' | 'repaid' | 'defaulted';
+  guarantors: Array<{
+    name: string;
+    memberId: string;
+    status: 'pending' | 'accepted' | 'rejected';
+  }>;
   weeklyPayment: number;
   weeksRemaining: number;
   fines: number;
+  repaymentHistory: Array<{
+    date: string;
+    amount: number;
+    adminId: string;
+  }>;
+  nextPaymentDate: string;
+}
+
+export interface Investment {
+  id: number;
+  productName: string;
+  productImages: string[];
+  description: string;
+  unitPrice: number;
+  totalWeeks: number;
+  availableUnits: number;
+  totalUnits: number;
+  createdDate: string;
+  status: 'active' | 'closed';
+  applications: Array<{
+    memberId: number;
+    memberName: string;
+    quantity: number;
+    totalAmount: number;
+    applicationDate: string;
+    status: 'pending' | 'approved' | 'rejected';
+    repaymentHistory: Array<{
+      date: string;
+      amount: number;
+      adminId: string;
+    }>;
+    remainingAmount: number;
+    weeksRemaining: number;
+  }>;
 }
 
 export interface Approval {
   id: number;
-  type: 'membership' | 'loan' | 'withdrawal';
+  type: 'membership' | 'loan' | 'investment' | 'withdrawal' | 'guarantor';
   applicantName: string;
+  applicantId?: number;
   amount?: number;
   applicationDate: string;
   status: 'pending' | 'approved' | 'rejected';
   details: string;
   priority: 'high' | 'medium' | 'low';
   memberData?: Partial<Member>;
+  relatedId?: number;
+  guarantorData?: {
+    loanId: number;
+    requesterName: string;
+    loanAmount: number;
+    purpose: string;
+  };
 }
 
 export interface Activity {
   id: number;
-  type: 'loan' | 'member' | 'payment' | 'savings' | 'approval';
+  type: 'loan' | 'member' | 'payment' | 'savings' | 'approval' | 'investment' | 'fine' | 'admin';
   description: string;
   amount?: string;
   time: string;
+  adminId?: string;
+  adminName?: string;
+  memberId?: number;
+  memberName?: string;
+}
+
+export interface Notification {
+  id: number;
+  memberId: number;
+  title: string;
+  message: string;
+  type: 'loan' | 'savings' | 'investment' | 'guarantor' | 'general' | 'default';
+  date: string;
+  read: boolean;
+  actionRequired?: boolean;
+  relatedId?: number;
+}
+
+export interface AGM {
+  id: number;
+  title: string;
+  date: string;
+  agenda: string[];
+  notice: string;
+  venue: string;
+  attendees: Array<{
+    memberId: number;
+    memberName: string;
+    rsvpStatus: 'pending' | 'attending' | 'not_attending';
+  }>;
+  documents: string[];
+  status: 'upcoming' | 'completed' | 'cancelled';
+}
+
+export interface AdminLog {
+  id: number;
+  adminId: string;
+  adminName: string;
+  action: string;
+  details: string;
+  timestamp: string;
+  targetMember?: string;
+  amount?: number;
+}
+
+export interface Feedback {
+  id: number;
+  memberId: number;
+  memberName: string;
+  title: string;
+  message: string;
+  category: 'complaint' | 'suggestion' | 'question' | 'bug_report';
+  status: 'new' | 'seen' | 'implemented' | 'rejected';
+  response?: string;
+  date: string;
+  priority: 'low' | 'medium' | 'high';
 }
 
 interface AppState {
   members: Member[];
   loans: Loan[];
+  investments: Investment[];
   approvals: Approval[];
   activities: Activity[];
+  notifications: Notification[];
+  agms: AGM[];
+  adminLogs: AdminLog[];
+  feedback: Feedback[];
+  dailyReturns: {
+    date: string;
+    totalAmount: number;
+    loanReturns: number;
+    investmentReturns: number;
+    savings: number;
+  }[];
 }
 
+// Initial data with expanded structure
 const initialMembers: Member[] = [
   {
     id: 1,
@@ -92,6 +225,8 @@ const initialMembers: Member[] = [
     status: 'active',
     balance: 450000,
     loanBalance: 150000,
+    investmentBalance: 0,
+    fines: 0,
     sex: 'Male',
     homeAddress: '123 Main Street',
     town: 'Lagos',
@@ -100,6 +235,8 @@ const initialMembers: Member[] = [
     occupation: 'Engineer',
     jobAddress: '456 Business District',
     introducedBy: 'Alice Johnson',
+    guarantorFor: [],
+    lastActivityDate: '2024-06-20',
     nextOfKin: {
       name: 'Jane Doe',
       address: '123 Main Street',
@@ -130,6 +267,8 @@ const initialMembers: Member[] = [
     status: 'active',
     balance: 320000,
     loanBalance: 0,
+    investmentBalance: 0,
+    fines: 0,
     sex: 'Female',
     homeAddress: '789 Oak Avenue',
     town: 'Abuja',
@@ -138,6 +277,8 @@ const initialMembers: Member[] = [
     occupation: 'Teacher',
     jobAddress: '123 School Road',
     introducedBy: 'Carol Davis',
+    guarantorFor: [],
+    lastActivityDate: '2024-06-18',
     nextOfKin: {
       name: 'Mark Johnson',
       address: '789 Oak Avenue',
@@ -148,6 +289,8 @@ const initialMembers: Member[] = [
       { name: 'John Doe', address: '123 Main Street', phone: '+234 800 123 4567' },
       { name: 'Carol Davis', address: '654 Elm Street', phone: '+234 800 999 0000' }
     ],
+    lastPaymentDate: undefined,
+    lastPaymentAmount: undefined,
     signatures: {
       applicant: '/placeholder-signature.png',
       guarantor1: '/placeholder-signature.png',
@@ -166,6 +309,8 @@ const initialMembers: Member[] = [
     status: 'suspended',
     balance: 125000,
     loanBalance: 75000,
+    investmentBalance: 0,
+    fines: 1500,
     sex: 'Male',
     homeAddress: '321 Pine Street',
     town: 'Kano',
@@ -174,6 +319,8 @@ const initialMembers: Member[] = [
     occupation: 'Trader',
     jobAddress: '987 Market Square',
     introducedBy: 'John Doe',
+    guarantorFor: [],
+    lastActivityDate: '2024-06-10',
     nextOfKin: {
       name: 'Sarah Williams',
       address: '321 Pine Street',
@@ -204,89 +351,142 @@ const initialLoans: Loan[] = [
     purpose: 'Business expansion',
     applicationDate: '2024-06-15',
     status: 'approved',
-    guarantors: ['Alice Johnson', 'Bob Williams'],
+    guarantors: [
+      { name: 'Alice Johnson', memberId: 'MEM002', status: 'accepted' },
+      { name: 'Bob Williams', memberId: 'MEM003', status: 'accepted' }
+    ],
     weeklyPayment: 6250,
     weeksRemaining: 18,
-    fines: 0
-  },
-  {
-    id: 2,
-    memberName: 'Bob Williams',
-    memberId: 'MEM003',
-    amount: 75000,
-    purpose: 'Emergency medical',
-    applicationDate: '2024-06-08',
-    status: 'approved',
-    guarantors: ['John Doe'],
-    weeklyPayment: 3125,
-    weeksRemaining: 12,
-    fines: 1500
+    fines: 0,
+    repaymentHistory: [],
+    nextPaymentDate: '2024-06-22'
   }
 ];
 
-const initialApprovals: Approval[] = [
+const initialInvestments: Investment[] = [
   {
     id: 1,
-    type: 'loan',
-    applicantName: 'Carol Davis',
-    amount: 200000,
-    applicationDate: '2024-06-18',
-    status: 'pending',
-    details: 'Home improvement loan with 2 guarantors',
-    priority: 'high'
-  },
-  {
-    id: 2,
-    type: 'membership',
-    applicantName: 'Sarah Wilson',
-    applicationDate: '2024-06-17',
-    status: 'pending',
-    details: 'New member registration - Teacher',
-    priority: 'medium',
-    memberData: {
-      name: 'Sarah Wilson',
-      email: 'sarah@example.com',
-      phone: '+234 800 456 7890',
-      sex: 'Female',
-      homeAddress: '456 Valley Road',
-      town: 'Port Harcourt',
-      lga: 'Port Harcourt City',
-      stateOfOrigin: 'Rivers',
-      occupation: 'Teacher',
-      jobAddress: '789 Education Avenue',
-      introducedBy: 'Alice Johnson',
-      balance: 0,
-      loanBalance: 0,
-      status: 'active' as const
-    }
-  },
-  {
-    id: 3,
-    type: 'withdrawal',
-    applicantName: 'Alice Johnson',
-    amount: 50000,
-    applicationDate: '2024-06-16',
-    status: 'pending',
-    details: 'Emergency withdrawal request',
-    priority: 'high'
+    productName: 'Agricultural Equipment Package',
+    productImages: ['/placeholder-product1.jpg', '/placeholder-product2.jpg'],
+    description: 'Complete farming equipment set including tractors and irrigation systems',
+    unitPrice: 500000,
+    totalWeeks: 52,
+    availableUnits: 8,
+    totalUnits: 10,
+    createdDate: '2024-06-01',
+    status: 'active',
+    applications: []
   }
-];
-
-const initialActivities: Activity[] = [
-  { id: 1, type: 'loan', description: 'New loan application from Carol Davis', amount: '₦200,000', time: '2 min ago' },
-  { id: 2, type: 'member', description: 'New member registration: Sarah Wilson', amount: '', time: '15 min ago' },
-  { id: 3, type: 'payment', description: 'Loan repayment from John Doe', amount: '₦6,250', time: '1 hour ago' },
-  { id: 4, type: 'savings', description: 'Savings deposit from Alice Johnson', amount: '₦50,000', time: '2 hours ago' },
 ];
 
 export const useAppState = () => {
   const [state, setState] = useState<AppState>({
     members: initialMembers,
     loans: initialLoans,
-    approvals: initialApprovals,
-    activities: initialActivities
+    investments: initialInvestments,
+    approvals: [],
+    activities: [],
+    notifications: [],
+    agms: [],
+    adminLogs: [],
+    feedback: [],
+    dailyReturns: []
   });
 
+  // Helper functions for loan guarantor system
+  const searchMemberByName = (name: string) => {
+    return state.members.filter(member => 
+      member.name.toLowerCase().includes(name.toLowerCase()) && 
+      member.status === 'active'
+    );
+  };
+
+  const canMemberBeGuarantor = (memberId: number) => {
+    const member = state.members.find(m => m.id === memberId);
+    return member && member.loanBalance === 0 && member.status === 'active';
+  };
+
+  const requestGuarantor = (loanId: number, guarantorId: number) => {
+    const loan = state.loans.find(l => l.id === loanId);
+    const guarantor = state.members.find(m => m.id === guarantorId);
+    
+    if (loan && guarantor) {
+      // Create notification for guarantor
+      const notification: Notification = {
+        id: Date.now(),
+        memberId: guarantorId,
+        title: 'Guarantor Request',
+        message: `${loan.memberName} has requested you to be their guarantor for a loan of ₦${loan.amount.toLocaleString()}. Please review and respond.`,
+        type: 'guarantor',
+        date: new Date().toISOString(),
+        read: false,
+        actionRequired: true,
+        relatedId: loanId
+      };
+
+      setState(prev => ({
+        ...prev,
+        notifications: [...prev.notifications, notification]
+      }));
+    }
+  };
+
+  const respondToGuarantorRequest = (notificationId: number, response: 'accepted' | 'rejected') => {
+    setState(prev => {
+      const notification = prev.notifications.find(n => n.id === notificationId);
+      if (!notification || !notification.relatedId) return prev;
+
+      const updatedLoans = prev.loans.map(loan => {
+        if (loan.id === notification.relatedId) {
+          const updatedGuarantors = loan.guarantors.map(g => 
+            g.memberId === notification.memberId.toString() 
+              ? { ...g, status: response }
+              : g
+          );
+          return { ...loan, guarantors: updatedGuarantors };
+        }
+        return loan;
+      });
+
+      const updatedNotifications = prev.notifications.map(n => 
+        n.id === notificationId ? { ...n, read: true, actionRequired: false } : n
+      );
+
+      return {
+        ...prev,
+        loans: updatedLoans,
+        notifications: updatedNotifications
+      };
+    });
+  };
+
+  // Daily returns calculation
+  const calculateDailyReturns = (date: string = new Date().toISOString().split('T')[0]) => {
+    const activities = state.activities.filter(a => a.time.includes(date));
+    let totalAmount = 0;
+    let loanReturns = 0;
+    let investmentReturns = 0;
+    let savings = 0;
+
+    activities.forEach(activity => {
+      if (activity.amount) {
+        const amount = parseFloat(activity.amount.replace(/[₦,]/g, ''));
+        if (activity.type === 'payment' && activity.description.includes('loan')) {
+          loanReturns += amount;
+        } else if (activity.type === 'investment') {
+          investmentReturns += amount;
+        } else if (activity.type === 'savings') {
+          savings += amount;
+        }
+      }
+    });
+
+    totalAmount = loanReturns + investmentReturns + savings;
+
+    return { date, totalAmount, loanReturns, investmentReturns, savings };
+  };
+
+  // Enhanced activity logging
   const addActivity = (activity: Omit<Activity, 'id'>) => {
     const newActivity = {
       ...activity,
@@ -298,133 +498,179 @@ export const useAppState = () => {
     }));
   };
 
-  const addMember = (memberData: Omit<Member, 'id' | 'membershipId' | 'joinDate' | 'balance' | 'loanBalance'>) => {
-    const newMember: Member = {
-      ...memberData,
+  const addAdminLog = (adminId: string, adminName: string, action: string, details: string, targetMember?: string, amount?: number) => {
+    const log: AdminLog = {
       id: Date.now(),
-      membershipId: `MEM${String(state.members.length + 1).padStart(3, '0')}`,
-      joinDate: new Date().toISOString().split('T')[0],
-      balance: 0,
-      loanBalance: 0
+      adminId,
+      adminName,
+      action,
+      details,
+      timestamp: new Date().toISOString(),
+      targetMember,
+      amount
     };
-    
+
     setState(prev => ({
       ...prev,
-      members: [...prev.members, newMember]
+      adminLogs: [log, ...prev.adminLogs]
     }));
-    
-    addActivity({
-      type: 'member',
-      description: `New member registered: ${newMember.name}`,
-      time: 'Just now'
-    });
-    
-    return newMember;
   };
 
-  const approveApplication = (approvalId: number) => {
+  // Enhanced savings management
+  const addSavings = (memberId: number, amounts: { loan?: number; investment?: number; savings?: number }, adminId: string, adminName: string) => {
     setState(prev => {
-      const approval = prev.approvals.find(a => a.id === approvalId);
-      if (!approval) return prev;
-
-      let updatedMembers = prev.members;
-      let updatedLoans = prev.loans;
-
-      if (approval.type === 'membership' && approval.memberData) {
-        const newMember = addMember(approval.memberData as any);
-        updatedMembers = [...prev.members, newMember];
-      } else if (approval.type === 'loan' && approval.amount) {
-        const member = prev.members.find(m => m.name === approval.applicantName);
-        if (member) {
-          updatedMembers = prev.members.map(m => 
-            m.id === member.id 
-              ? { ...m, loanBalance: m.loanBalance + approval.amount! }
-              : m
-          );
+      const updatedMembers = prev.members.map(member => {
+        if (member.id === memberId) {
+          const updatedMember = { ...member };
           
-          const newLoan: Loan = {
-            id: Date.now(),
-            memberName: approval.applicantName,
-            memberId: member.membershipId,
-            amount: approval.amount,
-            purpose: approval.details,
-            applicationDate: approval.applicationDate,
-            status: 'approved',
-            guarantors: [],
-            weeklyPayment: Math.ceil(approval.amount / 24),
-            weeksRemaining: 24,
-            fines: 0
-          };
-          updatedLoans = [...prev.loans, newLoan];
+          if (amounts.loan && member.loanBalance >= amounts.loan) {
+            updatedMember.loanBalance -= amounts.loan;
+          }
+          if (amounts.investment && member.investmentBalance >= amounts.investment) {
+            updatedMember.investmentBalance -= amounts.investment;
+          }
+          if (amounts.savings) {
+            updatedMember.balance += amounts.savings;
+          }
+          
+          return updatedMember;
         }
-      }
-
-      addActivity({
-        type: 'approval',
-        description: `${approval.type} application approved for ${approval.applicantName}`,
-        amount: approval.amount ? `₦${approval.amount.toLocaleString()}` : '',
-        time: 'Just now'
+        return member;
       });
 
-      return {
-        ...prev,
-        members: updatedMembers,
-        loans: updatedLoans,
-        approvals: prev.approvals.map(a => 
-          a.id === approvalId ? { ...a, status: 'approved' as const } : a
-        )
-      };
+      return { ...prev, members: updatedMembers };
     });
+
+    // Log the activity
+    const totalAmount = (amounts.loan || 0) + (amounts.investment || 0) + (amounts.savings || 0);
+    addActivity({
+      type: 'savings',
+      description: `Payment allocated by ${adminName}`,
+      amount: `₦${totalAmount.toLocaleString()}`,
+      time: 'Just now',
+      adminId,
+      adminName,
+      memberId
+    });
+
+    addAdminLog(adminId, adminName, 'Payment Allocation', `Allocated payment for member ${memberId}`, undefined, totalAmount);
   };
 
-  const rejectApplication = (approvalId: number) => {
-    setState(prev => {
-      const approval = prev.approvals.find(a => a.id === approvalId);
-      if (!approval) return prev;
+  // Investment management
+  const createInvestment = (investment: Omit<Investment, 'id' | 'createdDate' | 'applications'>) => {
+    const newInvestment: Investment = {
+      ...investment,
+      id: Date.now(),
+      createdDate: new Date().toISOString(),
+      applications: []
+    };
 
-      addActivity({
-        type: 'approval',
-        description: `${approval.type} application rejected for ${approval.applicantName}`,
-        time: 'Just now'
-      });
-
-      return {
-        ...prev,
-        approvals: prev.approvals.map(a => 
-          a.id === approvalId ? { ...a, status: 'rejected' as const } : a
-        )
-      };
-    });
-  };
-
-  const updateMemberBalance = (memberId: number, amount: number) => {
     setState(prev => ({
       ...prev,
-      members: prev.members.map(m => 
-        m.id === memberId 
-          ? { ...m, balance: m.balance + amount }
-          : m
-      )
+      investments: [...prev.investments, newInvestment]
+    }));
+
+    return newInvestment;
+  };
+
+  const applyForInvestment = (investmentId: number, memberId: number, quantity: number) => {
+    setState(prev => {
+      const investment = prev.investments.find(i => i.id === investmentId);
+      const member = prev.members.find(m => m.id === memberId);
+      
+      if (!investment || !member) return prev;
+
+      const totalAmount = investment.unitPrice * quantity;
+      const application = {
+        memberId,
+        memberName: member.name,
+        quantity,
+        totalAmount,
+        applicationDate: new Date().toISOString(),
+        status: 'pending' as const,
+        repaymentHistory: [],
+        remainingAmount: totalAmount,
+        weeksRemaining: investment.totalWeeks
+      };
+
+      const updatedInvestments = prev.investments.map(inv => 
+        inv.id === investmentId 
+          ? { ...inv, applications: [...inv.applications, application] }
+          : inv
+      );
+
+      return { ...prev, investments: updatedInvestments };
+    });
+  };
+
+  // Auto-fine system
+  const applyWeeklyFines = () => {
+    setState(prev => {
+      const updatedMembers = prev.members.map(member => {
+        if (member.loanBalance > 0) {
+          const loan = prev.loans.find(l => l.memberId === member.membershipId && l.status === 'approved');
+          if (loan && new Date(loan.nextPaymentDate) < new Date()) {
+            const fine = member.loanBalance * 0.02; // 2% fine
+            return { ...member, fines: member.fines + fine };
+          }
+        }
+        return member;
+      });
+
+      return { ...prev, members: updatedMembers };
+    });
+  };
+
+  // Check for dormant members
+  const checkDormantMembers = () => {
+    const threeWeeksAgo = new Date();
+    threeWeeksAgo.setDate(threeWeeksAgo.getDate() - 21);
+
+    setState(prev => ({
+      ...prev,
+      members: prev.members.map(member => {
+        const lastActivity = new Date(member.lastActivityDate || member.joinDate);
+        if (lastActivity < threeWeeksAgo && member.status === 'active') {
+          return { ...member, status: 'dormant' as const };
+        }
+        return member;
+      })
     }));
   };
 
+  // Stats calculation
   const stats = {
     totalMembers: state.members.length,
     totalSavings: state.members.reduce((sum, member) => sum + member.balance, 0),
+    totalLoans: state.loans.filter(loan => loan.status === 'approved').reduce((sum, loan) => sum + loan.amount, 0),
     activeLoans: state.loans.filter(loan => loan.status === 'approved' && loan.weeksRemaining > 0).length,
     activeLoanAmount: state.loans
       .filter(loan => loan.status === 'approved' && loan.weeksRemaining > 0)
       .reduce((sum, loan) => sum + loan.amount, 0),
-    pendingApprovals: state.approvals.filter(approval => approval.status === 'pending').length
+    totalInvestments: state.investments.reduce((sum, inv) => 
+      sum + inv.applications
+        .filter(app => app.status === 'approved')
+        .reduce((appSum, app) => appSum + app.totalAmount, 0), 0),
+    pendingApprovals: state.approvals.filter(approval => approval.status === 'pending').length,
+    totalFines: state.members.reduce((sum, member) => sum + member.fines, 0),
+    dailyReturns: calculateDailyReturns(),
+    dormantMembers: state.members.filter(member => member.status === 'dormant').length
   };
 
   return {
     ...state,
     stats,
-    addMember,
+    searchMemberByName,
+    canMemberBeGuarantor,
+    requestGuarantor,
+    respondToGuarantorRequest,
+    calculateDailyReturns,
     addActivity,
-    approveApplication,
-    rejectApplication,
-    updateMemberBalance
+    addAdminLog,
+    addSavings,
+    createInvestment,
+    applyForInvestment,
+    applyWeeklyFines,
+    checkDormantMembers
   };
 };

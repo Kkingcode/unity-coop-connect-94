@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,13 +16,15 @@ import {
   DollarSign,
   UserCheck,
   MessageSquare,
-  BarChart3
+  BarChart3,
+  Package
 } from 'lucide-react';
 import { Screen } from '@/pages/Index';
 import { useAppState } from '@/hooks/useAppState';
 import MembersManagement from './admin/MembersManagement';
 import LoansManagement from './admin/LoansManagement';
 import SavingsManagement from './admin/SavingsManagement';
+import InvestmentManagement from './admin/InvestmentManagement';
 import ApprovalsManagement from './admin/ApprovalsManagement';
 import MessagesCenter from './admin/MessagesCenter';
 import ReportsCenter from './admin/ReportsCenter';
@@ -33,12 +36,12 @@ interface AdminDashboardProps {
   onLogout: () => void;
 }
 
-type AdminScreen = 'dashboard' | 'members' | 'loans' | 'savings' | 'approvals' | 'messages' | 'reports' | 'settings';
+type AdminScreen = 'dashboard' | 'members' | 'loans' | 'savings' | 'investments' | 'approvals' | 'messages' | 'reports' | 'settings';
 
 const AdminDashboard = ({ user, onNavigate, onLogout }: AdminDashboardProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeScreen, setActiveScreen] = useState<AdminScreen>('dashboard');
-  const { stats, activities, approveApplication, rejectApplication } = useAppState();
+  const { stats, activities } = useAppState();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-NG', {
@@ -53,36 +56,36 @@ const AdminDashboard = ({ user, onNavigate, onLogout }: AdminDashboardProps) => 
       value: stats.totalMembers.toString(),
       change: `+${stats.totalMembers > 0 ? Math.floor(stats.totalMembers * 0.1) : 0}`,
       icon: Users,
-      color: 'text-primary',
+      color: 'text-purple-600',
       bgColor: 'card-members',
       onClick: () => setActiveScreen('members')
-    },
-    {
-      title: 'Active Loans',
-      value: formatCurrency(stats.activeLoanAmount),
-      change: `${stats.activeLoans} loans`,
-      icon: CreditCard,
-      color: 'text-primary',
-      bgColor: 'card-loans',
-      onClick: () => setActiveScreen('loans')
     },
     {
       title: 'Total Savings',
       value: formatCurrency(stats.totalSavings),
       change: '+8.1%',
       icon: TrendingUp,
-      color: 'text-primary',
+      color: 'text-emerald-600',
       bgColor: 'card-savings',
       onClick: () => setActiveScreen('savings')
     },
     {
-      title: 'Pending Approvals',
-      value: stats.pendingApprovals.toString(),
-      change: `+${Math.floor(stats.pendingApprovals * 0.5)}`,
-      icon: AlertTriangle,
-      color: 'text-primary',
-      bgColor: 'card-approvals',
-      onClick: () => setActiveScreen('approvals')
+      title: 'Active Loans',
+      value: formatCurrency(stats.activeLoanAmount),
+      change: `${stats.activeLoans} loans`,
+      icon: CreditCard,
+      color: 'text-purple-600',
+      bgColor: 'card-loans',
+      onClick: () => setActiveScreen('loans')
+    },
+    {
+      title: 'Investments',
+      value: formatCurrency(stats.totalInvestments),
+      change: 'Active',
+      icon: Package,
+      color: 'text-emerald-600',
+      bgColor: 'card-investments',
+      onClick: () => setActiveScreen('investments')
     }
   ];
 
@@ -90,6 +93,7 @@ const AdminDashboard = ({ user, onNavigate, onLogout }: AdminDashboardProps) => 
     { icon: Users, label: 'Members', screen: 'members' as AdminScreen },
     { icon: CreditCard, label: 'Loans', screen: 'loans' as AdminScreen },
     { icon: DollarSign, label: 'Savings', screen: 'savings' as AdminScreen },
+    { icon: Package, label: 'Investments', screen: 'investments' as AdminScreen },
     { icon: UserCheck, label: 'Approvals', screen: 'approvals' as AdminScreen },
     { icon: MessageSquare, label: 'Messages', screen: 'messages' as AdminScreen },
     { icon: BarChart3, label: 'Reports', screen: 'reports' as AdminScreen },
@@ -109,6 +113,8 @@ const AdminDashboard = ({ user, onNavigate, onLogout }: AdminDashboardProps) => 
         return <LoansManagement />;
       case 'savings':
         return <SavingsManagement />;
+      case 'investments':
+        return <InvestmentManagement />;
       case 'approvals':
         return <ApprovalsManagement />;
       case 'messages':
@@ -120,6 +126,34 @@ const AdminDashboard = ({ user, onNavigate, onLogout }: AdminDashboardProps) => 
       default:
         return (
           <div className="animate-fade-in-up">
+            {/* Daily Returns Card */}
+            <Card className="glass-card mb-6">
+              <CardHeader>
+                <CardTitle className="text-purple-700">Daily Returns Summary</CardTitle>
+                <CardDescription>Total collections for today</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <p className="text-2xl font-bold text-green-600">{formatCurrency(stats.dailyReturns.totalAmount)}</p>
+                    <p className="text-sm text-green-600">Total Returns</p>
+                  </div>
+                  <div className="text-center p-4 bg-blue-50 rounded-lg">
+                    <p className="text-lg font-semibold text-blue-600">{formatCurrency(stats.dailyReturns.loanReturns)}</p>
+                    <p className="text-sm text-blue-600">Loan Returns</p>
+                  </div>
+                  <div className="text-center p-4 bg-purple-50 rounded-lg">
+                    <p className="text-lg font-semibold text-purple-600">{formatCurrency(stats.dailyReturns.investmentReturns)}</p>
+                    <p className="text-sm text-purple-600">Investment Returns</p>
+                  </div>
+                  <div className="text-center p-4 bg-emerald-50 rounded-lg">
+                    <p className="text-lg font-semibold text-emerald-600">{formatCurrency(stats.dailyReturns.savings)}</p>
+                    <p className="text-sm text-emerald-600">Savings</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               {statsData.map((stat, index) => (
@@ -144,6 +178,45 @@ const AdminDashboard = ({ user, onNavigate, onLogout }: AdminDashboardProps) => 
               ))}
             </div>
 
+            {/* Additional Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <Card className="glass-card">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Pending Approvals</p>
+                      <p className="text-2xl font-bold text-red-600">{stats.pendingApprovals}</p>
+                    </div>
+                    <AlertTriangle className="h-8 w-8 text-red-600" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="glass-card">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Total Fines</p>
+                      <p className="text-2xl font-bold text-yellow-600">{formatCurrency(stats.totalFines)}</p>
+                    </div>
+                    <AlertTriangle className="h-8 w-8 text-yellow-600" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="glass-card">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Dormant Members</p>
+                      <p className="text-2xl font-bold text-gray-600">{stats.dormantMembers}</p>
+                    </div>
+                    <Users className="h-8 w-8 text-gray-600" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Recent Activities */}
               <Card className="glass-card">
@@ -157,7 +230,15 @@ const AdminDashboard = ({ user, onNavigate, onLogout }: AdminDashboardProps) => 
                       <div key={activity.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <div className="flex-1">
                           <p className="font-medium text-sm">{activity.description}</p>
-                          <p className="text-xs text-gray-600">{activity.time}</p>
+                          <div className="flex items-center gap-2 text-xs text-gray-600">
+                            <span>{activity.time}</span>
+                            {activity.adminName && (
+                              <span>• by {activity.adminName}</span>
+                            )}
+                            {activity.memberName && (
+                              <span>• {activity.memberName}</span>
+                            )}
+                          </div>
                         </div>
                         {activity.amount && (
                           <Badge variant="secondary" className="text-xs">
@@ -204,10 +285,10 @@ const AdminDashboard = ({ user, onNavigate, onLogout }: AdminDashboardProps) => 
                     <Button 
                       variant="outline" 
                       className="w-full justify-start gap-3"
-                      onClick={() => setActiveScreen('savings')}
+                      onClick={() => setActiveScreen('investments')}
                     >
-                      <DollarSign className="h-4 w-4" />
-                      Savings Overview
+                      <Package className="h-4 w-4" />
+                      Investment Products
                     </Button>
                   </div>
                 </CardContent>

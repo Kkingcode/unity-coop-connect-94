@@ -1,11 +1,13 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, CreditCard, User, FileText } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { ArrowLeft, CreditCard, User, FileText, Search, AlertTriangle, Check } from 'lucide-react';
 import { Screen } from '@/pages/Index';
+import { useAppState } from '@/hooks/useAppState';
 
 interface LoanApplicationProps {
   user: any;
@@ -13,28 +15,94 @@ interface LoanApplicationProps {
 }
 
 const LoanApplication = ({ user, onNavigate }: LoanApplicationProps) => {
+  const { searchMemberByName, canMemberBeGuarantor, requestGuarantor } = useAppState();
   const [formData, setFormData] = useState({
     amount: '',
     purpose: '',
     duration: '24',
-    guarantor1Name: '',
-    guarantor1Phone: '',
-    guarantor1Address: '',
-    guarantor2Name: '',
-    guarantor2Phone: '',
-    guarantor2Address: '',
+    guarantor1Search: '',
+    guarantor1Selected: null as any,
+    guarantor2Search: '',
+    guarantor2Selected: null as any,
     employmentStatus: '',
     monthlyIncome: '',
     additionalInfo: ''
   });
 
+  const [guarantor1Results, setGuarantor1Results] = useState<any[]>([]);
+  const [guarantor2Results, setGuarantor2Results] = useState<any[]>([]);
+  const [showGuarantor1Results, setShowGuarantor1Results] = useState(false);
+  const [showGuarantor2Results, setShowGuarantor2Results] = useState(false);
+
+  // Search for guarantor 1
+  useEffect(() => {
+    if (formData.guarantor1Search.length > 2) {
+      const results = searchMemberByName(formData.guarantor1Search)
+        .filter(member => member.id !== user.id); // Exclude self
+      setGuarantor1Results(results);
+      setShowGuarantor1Results(true);
+    } else {
+      setShowGuarantor1Results(false);
+    }
+  }, [formData.guarantor1Search]);
+
+  // Search for guarantor 2
+  useEffect(() => {
+    if (formData.guarantor2Search.length > 2) {
+      const results = searchMemberByName(formData.guarantor2Search)
+        .filter(member => member.id !== user.id && member.id !== formData.guarantor1Selected?.id);
+      setGuarantor2Results(results);
+      setShowGuarantor2Results(true);
+    } else {
+      setShowGuarantor2Results(false);
+    }
+  }, [formData.guarantor2Search, formData.guarantor1Selected]);
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleGuarantorSelect = (guarantor: any, guarantorNumber: 1 | 2) => {
+    const canBeGuarantor = canMemberBeGuarantor(guarantor.id);
+    
+    if (!canBeGuarantor) {
+      alert('This member cannot be a guarantor as they currently have an active loan.');
+      return;
+    }
+
+    if (guarantorNumber === 1) {
+      setFormData(prev => ({
+        ...prev,
+        guarantor1Selected: guarantor,
+        guarantor1Search: guarantor.name
+      }));
+      setShowGuarantor1Results(false);
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        guarantor2Selected: guarantor,
+        guarantor2Search: guarantor.name
+      }));
+      setShowGuarantor2Results(false);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    alert('Loan application submitted successfully! You will be notified once reviewed.');
+    
+    if (!formData.guarantor1Selected || !formData.guarantor2Selected) {
+      alert('Please select valid guarantors before submitting.');
+      return;
+    }
+
+    // Create loan application and send requests to guarantors
+    const loanId = Date.now();
+    
+    // Send guarantor requests
+    requestGuarantor(loanId, formData.guarantor1Selected.id);
+    requestGuarantor(loanId, formData.guarantor2Selected.id);
+    
+    alert('Loan application submitted successfully! Your guarantors will be notified to accept or reject the request.');
     onNavigate('member-dashboard');
   };
 
@@ -44,6 +112,10 @@ const LoanApplication = ({ user, onNavigate }: LoanApplicationProps) => {
       style: 'currency',
       currency: 'NGN',
     }).format(Number(amount));
+  };
+
+  const blurBalance = (balance: number) => {
+    return '₦***,***';
   };
 
   return (
@@ -124,74 +196,138 @@ const LoanApplication = ({ user, onNavigate }: LoanApplicationProps) => {
                 <User className="h-5 w-5" />
                 Guarantor Information
               </CardTitle>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-medium text-yellow-800">Important Notice:</p>
+                    <p className="text-yellow-700">
+                      Your guarantors cannot apply for loans while you have an outstanding loan balance. 
+                      Make sure they understand this commitment before accepting.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Guarantor 1 */}
               <div>
                 <h4 className="font-medium mb-3">First Guarantor *</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Full Name</label>
+                <div className="relative">
+                  <label className="block text-sm font-medium mb-2">Search Member</label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                     <Input
-                      value={formData.guarantor1Name}
-                      onChange={(e) => handleInputChange('guarantor1Name', e.target.value)}
-                      placeholder="Guarantor's full name"
+                      value={formData.guarantor1Search}
+                      onChange={(e) => handleInputChange('guarantor1Search', e.target.value)}
+                      placeholder="Type member name to search..."
+                      className="pl-10"
                       required
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Phone Number</label>
-                    <Input
-                      value={formData.guarantor1Phone}
-                      onChange={(e) => handleInputChange('guarantor1Phone', e.target.value)}
-                      placeholder="Phone number"
-                      required
-                    />
+                  
+                  {showGuarantor1Results && guarantor1Results.length > 0 && (
+                    <div className="absolute z-10 w-full bg-white border rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto">
+                      {guarantor1Results.map((member) => {
+                        const canBeGuarantor = canMemberBeGuarantor(member.id);
+                        return (
+                          <div
+                            key={member.id}
+                            className={`p-3 hover:bg-gray-50 cursor-pointer border-b ${
+                              !canBeGuarantor ? 'opacity-50' : ''
+                            }`}
+                            onClick={() => canBeGuarantor && handleGuarantorSelect(member, 1)}
+                          >
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <p className="font-medium">{member.name}</p>
+                                <p className="text-sm text-gray-600">{member.membershipId}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-sm text-gray-600">Balance: {blurBalance(member.balance)}</p>
+                                {!canBeGuarantor && (
+                                  <Badge className="bg-red-100 text-red-800 text-xs">Has Active Loan</Badge>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {formData.guarantor1Selected && (
+                  <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Check className="h-4 w-4 text-green-600" />
+                      <span className="font-medium text-green-800">Selected Guarantor</span>
+                    </div>
+                    <p className="text-sm"><strong>Name:</strong> {formData.guarantor1Selected.name}</p>
+                    <p className="text-sm"><strong>ID:</strong> {formData.guarantor1Selected.membershipId}</p>
+                    <p className="text-sm"><strong>Balance:</strong> {blurBalance(formData.guarantor1Selected.balance)}</p>
                   </div>
-                </div>
-                <div className="mt-4">
-                  <label className="block text-sm font-medium mb-2">Address</label>
-                  <Textarea
-                    value={formData.guarantor1Address}
-                    onChange={(e) => handleInputChange('guarantor1Address', e.target.value)}
-                    placeholder="Full address"
-                    required
-                  />
-                </div>
+                )}
               </div>
 
               {/* Guarantor 2 */}
               <div>
                 <h4 className="font-medium mb-3">Second Guarantor *</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Full Name</label>
+                <div className="relative">
+                  <label className="block text-sm font-medium mb-2">Search Member</label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                     <Input
-                      value={formData.guarantor2Name}
-                      onChange={(e) => handleInputChange('guarantor2Name', e.target.value)}
-                      placeholder="Guarantor's full name"
+                      value={formData.guarantor2Search}
+                      onChange={(e) => handleInputChange('guarantor2Search', e.target.value)}
+                      placeholder="Type member name to search..."
+                      className="pl-10"
                       required
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Phone Number</label>
-                    <Input
-                      value={formData.guarantor2Phone}
-                      onChange={(e) => handleInputChange('guarantor2Phone', e.target.value)}
-                      placeholder="Phone number"
-                      required
-                    />
+                  
+                  {showGuarantor2Results && guarantor2Results.length > 0 && (
+                    <div className="absolute z-10 w-full bg-white border rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto">
+                      {guarantor2Results.map((member) => {
+                        const canBeGuarantor = canMemberBeGuarantor(member.id);
+                        return (
+                          <div
+                            key={member.id}
+                            className={`p-3 hover:bg-gray-50 cursor-pointer border-b ${
+                              !canBeGuarantor ? 'opacity-50' : ''
+                            }`}
+                            onClick={() => canBeGuarantor && handleGuarantorSelect(member, 2)}
+                          >
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <p className="font-medium">{member.name}</p>
+                                <p className="text-sm text-gray-600">{member.membershipId}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-sm text-gray-600">Balance: {blurBalance(member.balance)}</p>
+                                {!canBeGuarantor && (
+                                  <Badge className="bg-red-100 text-red-800 text-xs">Has Active Loan</Badge>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {formData.guarantor2Selected && (
+                  <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Check className="h-4 w-4 text-green-600" />
+                      <span className="font-medium text-green-800">Selected Guarantor</span>
+                    </div>
+                    <p className="text-sm"><strong>Name:</strong> {formData.guarantor2Selected.name}</p>
+                    <p className="text-sm"><strong>ID:</strong> {formData.guarantor2Selected.membershipId}</p>
+                    <p className="text-sm"><strong>Balance:</strong> {blurBalance(formData.guarantor2Selected.balance)}</p>
                   </div>
-                </div>
-                <div className="mt-4">
-                  <label className="block text-sm font-medium mb-2">Address</label>
-                  <Textarea
-                    value={formData.guarantor2Address}
-                    onChange={(e) => handleInputChange('guarantor2Address', e.target.value)}
-                    placeholder="Full address"
-                    required
-                  />
-                </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -252,7 +388,11 @@ const LoanApplication = ({ user, onNavigate }: LoanApplicationProps) => {
             >
               Cancel
             </Button>
-            <Button type="submit" className="bg-primary hover:bg-primary/90">
+            <Button 
+              type="submit" 
+              className="bg-primary hover:bg-primary/90"
+              disabled={!formData.guarantor1Selected || !formData.guarantor2Selected}
+            >
               Submit Application
             </Button>
           </div>
