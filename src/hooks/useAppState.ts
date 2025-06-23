@@ -453,7 +453,8 @@ export const useAppState = () => {
   // Helper functions for loan guarantor system
   const searchMemberByName = (name: string) => {
     return state.members.filter(member => 
-      member.name.toLowerCase().includes(name.toLowerCase()) && 
+      member.name.toLowerCase().includes(name.toLowerCase()) || 
+      member.membershipId.toLowerCase().includes(name.toLowerCase()) &&
       member.status === 'active'
     );
   };
@@ -463,32 +464,82 @@ export const useAppState = () => {
     return member && member.loanBalance === 0 && member.status === 'active';
   };
 
-  const requestGuarantor = (loanId: number, guarantorId: number) => {
-    const loan = state.loans.find(l => l.id === loanId);
-    const guarantor = state.members.find(m => m.id === guarantorId);
-    
-    if (loan && guarantor) {
-      // Create notification for guarantor
+  const submitLoanApplication = (loanData: any) => {
+    const newLoan: Loan = {
+      id: Date.now(),
+      memberName: loanData.memberName,
+      memberId: loanData.memberId.toString(),
+      amount: loanData.amount,
+      purpose: loanData.purpose,
+      applicationDate: new Date().toISOString().split('T')[0],
+      status: 'pending',
+      guarantors: loanData.guarantors.map((g: any) => ({
+        name: g.name,
+        memberId: g.id.toString(),
+        status: 'pending'
+      })),
+      weeklyPayment: Math.round(loanData.amount / loanData.duration),
+      weeksRemaining: loanData.duration,
+      fines: 0,
+      repaymentHistory: [],
+      nextPaymentDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    };
+
+    // Add loan to state
+    setState(prev => ({
+      ...prev,
+      loans: [...prev.loans, newLoan]
+    }));
+
+    // Send notifications to guarantors
+    loanData.guarantors.forEach((guarantor: any) => {
       const notification: Notification = {
-        id: Date.now(),
-        memberId: guarantorId,
+        id: Date.now() + guarantor.id,
+        memberId: guarantor.id,
         title: 'Guarantor Request',
-        message: `${loan.memberName} has requested you to be their guarantor for a loan of ₦${loan.amount.toLocaleString()}. Please review and respond.`,
+        message: `${loanData.memberName} has requested you to be their guarantor for a loan of ₦${loanData.amount.toLocaleString()}. Please review and respond.`,
         type: 'guarantor',
         date: new Date().toISOString(),
         read: false,
         actionRequired: true,
-        relatedId: loanId
+        relatedId: newLoan.id
       };
 
       setState(prev => ({
         ...prev,
         notifications: [...prev.notifications, notification]
       }));
-    }
+    });
+
+    // Add to approvals
+    const approval: Approval = {
+      id: Date.now() + 1000,
+      type: 'loan',
+      applicantName: loanData.memberName,
+      applicantId: loanData.memberId,
+      amount: loanData.amount,
+      applicationDate: new Date().toISOString().split('T')[0],
+      status: 'pending',
+      details: `Loan application for ${loanData.purpose}`,
+      priority: 'medium'
+    };
+
+    setState(prev => ({
+      ...prev,
+      approvals: [...prev.approvals, approval]
+    }));
+
+    addActivity({
+      type: 'loan',
+      description: `Loan application submitted by ${loanData.memberName}`,
+      amount: `₦${loanData.amount.toLocaleString()}`,
+      time: 'Just now',
+      memberId: loanData.memberId,
+      memberName: loanData.memberName
+    });
   };
 
-  const respondToGuarantorRequest = (notificationId: number, response: 'accepted' | 'rejected') => {
+  const respondToGuarantorRequest = (notificationId: number, response: 'accepted' | 'rejected', memberId: number) => {
     setState(prev => {
       const notification = prev.notifications.find(n => n.id === notificationId);
       if (!notification || !notification.relatedId) return prev;
@@ -496,7 +547,7 @@ export const useAppState = () => {
       const updatedLoans = prev.loans.map(loan => {
         if (loan.id === notification.relatedId) {
           const updatedGuarantors = loan.guarantors.map(g => 
-            g.memberId === notification.memberId.toString() 
+            g.memberId === memberId.toString()
               ? { ...g, status: response }
               : g
           );
@@ -508,6 +559,33 @@ export const useAppState = () => {
       const updatedNotifications = prev.notifications.map(n => 
         n.id === notificationId ? { ...n, read: true, actionRequired: false } : n
       );
+
+      // If accepted, add guarantor tracking
+      if (response === 'accepted') {
+        const loan = prev.loans.find(l => l.id === notification.relatedId);
+        const member = prev.members.find(m => m.id === memberId);
+        if (loan && member) {
+          const updatedMembers = prev.members.map(m => 
+            m.id === memberId 
+              ? { 
+                  ...m, 
+                  guarantorFor: [...m.guarantorFor, {
+                    memberId: parseInt(loan.memberId),
+                    memberName: loan.memberName,
+                    loanAmount: loan.amount,
+                    remainingAmount: loan.amount
+                  }]
+                }
+              : m
+          );
+          return {
+            ...prev,
+            loans: updatedLoans,
+            notifications: updatedNotifications,
+            members: updatedMembers
+          };
+        }
+      }
 
       return {
         ...prev,
@@ -573,8 +651,8 @@ export const useAppState = () => {
     }));
   };
 
-  // Enhanced savings management
-  const addSavings = (memberId: number, amounts: { loan?: number; investment?: number; savings?: number }, adminId: string, adminName: string) => {
+  // Enhanced savings management with allocation
+  const allocateSavings = (memberId: number, amounts: { loan?: number; investment?: number; savings?: number }, adminId: string, adminName: string) => {
     setState(prev => {
       const updatedMembers = prev.members.map(member => {
         if (member.id === memberId) {
@@ -582,6 +660,8 @@ export const useAppState = () => {
           
           if (amounts.loan && member.loanBalance >= amounts.loan) {
             updatedMember.loanBalance -= amounts.loan;
+            updatedMember.lastPaymentDate = new Date().toISOString().split('T')[0];
+            updatedMember.lastPaymentAmount = amounts.loan;
           }
           if (amounts.investment && member.investmentBalance >= amounts.investment) {
             updatedMember.investmentBalance -= amounts.investment;
@@ -594,6 +674,11 @@ export const useAppState = () => {
         }
         return member;
       });
+
+      // Update total savings
+      const totalDeducted = (amounts.loan || 0) + (amounts.investment || 0);
+      const totalAdded = amounts.savings || 0;
+      const netChange = totalAdded - totalDeducted;
 
       return { ...prev, members: updatedMembers };
     });
@@ -611,6 +696,26 @@ export const useAppState = () => {
     });
 
     addAdminLog(adminId, adminName, 'Payment Allocation', `Allocated payment for member ${memberId}`, undefined, totalAmount);
+
+    // Notify member
+    const member = state.members.find(m => m.id === memberId);
+    if (member) {
+      const notification: Notification = {
+        id: Date.now(),
+        memberId,
+        title: 'Payment Processed',
+        message: `Your payment of ₦${totalAmount.toLocaleString()} has been allocated to your account.`,
+        type: 'savings',
+        date: new Date().toISOString(),
+        read: false,
+        actionRequired: false
+      };
+
+      setState(prev => ({
+        ...prev,
+        notifications: [...prev.notifications, notification]
+      }));
+    }
   };
 
   // Add missing functions needed by components
@@ -687,6 +792,34 @@ export const useAppState = () => {
       investments: [...prev.investments, newInvestment]
     }));
 
+    // Broadcast to all members
+    state.members.forEach(member => {
+      const notification: Notification = {
+        id: Date.now() + member.id,
+        memberId: member.id,
+        title: 'New Investment Opportunity',
+        message: `${investment.productName} is now available for investment. Check the investment section for details.`,
+        type: 'investment',
+        date: new Date().toISOString(),
+        read: false,
+        actionRequired: false,
+        relatedId: newInvestment.id
+      };
+
+      setState(prev => ({
+        ...prev,
+        notifications: [...prev.notifications, notification]
+      }));
+    });
+
+    addActivity({
+      type: 'investment',
+      description: `New investment product created: ${investment.productName}`,
+      time: 'Just now',
+      adminId: 'ADMIN001',
+      adminName: 'Admin User'
+    });
+
     return newInvestment;
   };
 
@@ -716,6 +849,55 @@ export const useAppState = () => {
           : inv
       );
 
+      // Add to approvals
+      const approval: Approval = {
+        id: Date.now(),
+        type: 'investment',
+        applicantName: member.name,
+        applicantId: memberId,
+        amount: totalAmount,
+        applicationDate: new Date().toISOString().split('T')[0],
+        status: 'pending',
+        details: `Investment application for ${investment.productName}`,
+        priority: 'medium'
+      };
+
+      return { 
+        ...prev, 
+        investments: updatedInvestments,
+        approvals: [...prev.approvals, approval]
+      };
+    });
+  };
+
+  const approveInvestment = (investmentId: number, memberId: number) => {
+    setState(prev => {
+      const updatedInvestments = prev.investments.map(inv => {
+        if (inv.id === investmentId) {
+          const updatedApplications = inv.applications.map(app => 
+            app.memberId === memberId 
+              ? { ...app, status: 'approved' as const }
+              : app
+          );
+          return { ...inv, applications: updatedApplications, availableUnits: inv.availableUnits - 1 };
+        }
+        return inv;
+      });
+
+      // Update member investment balance and deduct from total savings
+      const investment = prev.investments.find(i => i.id === investmentId);
+      const application = investment?.applications.find(a => a.memberId === memberId);
+      
+      if (application) {
+        const updatedMembers = prev.members.map(member => 
+          member.id === memberId 
+            ? { ...member, investmentBalance: member.investmentBalance + application.totalAmount }
+            : member
+        );
+
+        return { ...prev, investments: updatedInvestments, members: updatedMembers };
+      }
+
       return { ...prev, investments: updatedInvestments };
     });
   };
@@ -728,6 +910,29 @@ export const useAppState = () => {
           const loan = prev.loans.find(l => l.memberId === member.membershipId && l.status === 'approved');
           if (loan && new Date(loan.nextPaymentDate) < new Date()) {
             const fine = member.loanBalance * 0.02; // 2% fine
+            
+            // Notify guarantors of default
+            member.guarantorFor.forEach(guarantorInfo => {
+              const guarantor = prev.members.find(m => m.id === guarantorInfo.memberId);
+              if (guarantor) {
+                const notification: Notification = {
+                  id: Date.now() + guarantor.id,
+                  memberId: guarantor.id,
+                  title: 'Loan Default Alert',
+                  message: `${member.name} has missed a scheduled repayment. Please check in with them.`,
+                  type: 'default',
+                  date: new Date().toISOString(),
+                  read: false,
+                  actionRequired: true
+                };
+
+                setState(prev => ({
+                  ...prev,
+                  notifications: [...prev.notifications, notification]
+                }));
+              }
+            });
+
             return { ...member, fines: member.fines + fine };
           }
         }
@@ -779,17 +984,18 @@ export const useAppState = () => {
     stats,
     searchMemberByName,
     canMemberBeGuarantor,
-    requestGuarantor,
+    submitLoanApplication,
     respondToGuarantorRequest,
     calculateDailyReturns,
     addActivity,
     addAdminLog,
-    addSavings,
+    allocateSavings,
     updateMemberBalance,
     approveApplication,
     rejectApplication,
     createInvestment,
     applyForInvestment,
+    approveInvestment,
     applyWeeklyFines,
     checkDormantMembers
   };

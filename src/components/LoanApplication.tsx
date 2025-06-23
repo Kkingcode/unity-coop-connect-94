@@ -15,7 +15,7 @@ interface LoanApplicationProps {
 }
 
 const LoanApplication = ({ user, onNavigate }: LoanApplicationProps) => {
-  const { searchMemberByName, canMemberBeGuarantor, requestGuarantor } = useAppState();
+  const { searchMemberByName, canMemberBeGuarantor, submitLoanApplication } = useAppState();
   const [formData, setFormData] = useState({
     amount: '',
     purpose: '',
@@ -38,13 +38,13 @@ const LoanApplication = ({ user, onNavigate }: LoanApplicationProps) => {
   useEffect(() => {
     if (formData.guarantor1Search.length > 2) {
       const results = searchMemberByName(formData.guarantor1Search)
-        .filter(member => member.id !== user.id); // Exclude self
+        .filter(member => member.id !== user.id);
       setGuarantor1Results(results);
       setShowGuarantor1Results(true);
     } else {
       setShowGuarantor1Results(false);
     }
-  }, [formData.guarantor1Search]);
+  }, [formData.guarantor1Search, user.id, searchMemberByName]);
 
   // Search for guarantor 2
   useEffect(() => {
@@ -56,7 +56,7 @@ const LoanApplication = ({ user, onNavigate }: LoanApplicationProps) => {
     } else {
       setShowGuarantor2Results(false);
     }
-  }, [formData.guarantor2Search, formData.guarantor1Selected]);
+  }, [formData.guarantor2Search, formData.guarantor1Selected, user.id, searchMemberByName]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -95,14 +95,23 @@ const LoanApplication = ({ user, onNavigate }: LoanApplicationProps) => {
       return;
     }
 
-    // Create loan application and send requests to guarantors
-    const loanId = Date.now();
-    
-    // Send guarantor requests
-    requestGuarantor(loanId, formData.guarantor1Selected.id);
-    requestGuarantor(loanId, formData.guarantor2Selected.id);
-    
-    alert('Loan application submitted successfully! Your guarantors will be notified to accept or reject the request.');
+    const loanData = {
+      memberId: user.id,
+      memberName: user.name,
+      amount: Number(formData.amount),
+      purpose: formData.purpose,
+      duration: Number(formData.duration),
+      guarantors: [
+        { id: formData.guarantor1Selected.id, name: formData.guarantor1Selected.name },
+        { id: formData.guarantor2Selected.id, name: formData.guarantor2Selected.name }
+      ],
+      employmentStatus: formData.employmentStatus,
+      monthlyIncome: Number(formData.monthlyIncome),
+      additionalInfo: formData.additionalInfo
+    };
+
+    submitLoanApplication(loanData);
+    alert('Loan application submitted successfully! Your guarantors will be notified.');
     onNavigate('member-dashboard');
   };
 
@@ -115,7 +124,7 @@ const LoanApplication = ({ user, onNavigate }: LoanApplicationProps) => {
   };
 
   const blurBalance = (balance: number) => {
-    return '₦***,***';
+    return `₦${'*'.repeat(balance.toString().length)}`;
   };
 
   return (
@@ -196,12 +205,12 @@ const LoanApplication = ({ user, onNavigate }: LoanApplicationProps) => {
                 <User className="h-5 w-5" />
                 Guarantor Information
               </CardTitle>
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-4">
                 <div className="flex items-start gap-2">
-                  <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                  <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
                   <div className="text-sm">
-                    <p className="font-medium text-yellow-800">Important Notice:</p>
-                    <p className="text-yellow-700">
+                    <p className="font-medium text-amber-800">Important Notice:</p>
+                    <p className="text-amber-700">
                       Your guarantors cannot apply for loans while you have an outstanding loan balance. 
                       Make sure they understand this commitment before accepting.
                     </p>
@@ -214,13 +223,13 @@ const LoanApplication = ({ user, onNavigate }: LoanApplicationProps) => {
               <div>
                 <h4 className="font-medium mb-3">First Guarantor *</h4>
                 <div className="relative">
-                  <label className="block text-sm font-medium mb-2">Search Member</label>
+                  <label className="block text-sm font-medium mb-2">Search by Name or Account Number</label>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                     <Input
                       value={formData.guarantor1Search}
                       onChange={(e) => handleInputChange('guarantor1Search', e.target.value)}
-                      placeholder="Type member name to search..."
+                      placeholder="Type member name or account number..."
                       className="pl-10"
                       required
                     />
@@ -274,13 +283,13 @@ const LoanApplication = ({ user, onNavigate }: LoanApplicationProps) => {
               <div>
                 <h4 className="font-medium mb-3">Second Guarantor *</h4>
                 <div className="relative">
-                  <label className="block text-sm font-medium mb-2">Search Member</label>
+                  <label className="block text-sm font-medium mb-2">Search by Name or Account Number</label>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                     <Input
                       value={formData.guarantor2Search}
                       onChange={(e) => handleInputChange('guarantor2Search', e.target.value)}
-                      placeholder="Type member name to search..."
+                      placeholder="Type member name or account number..."
                       className="pl-10"
                       required
                     />
