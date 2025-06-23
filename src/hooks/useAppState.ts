@@ -379,13 +379,70 @@ const initialInvestments: Investment[] = [
   }
 ];
 
+const initialApprovals: Approval[] = [
+  {
+    id: 1,
+    type: 'loan',
+    applicantName: 'Alice Johnson',
+    applicantId: 2,
+    amount: 200000,
+    applicationDate: '2024-06-20',
+    status: 'pending',
+    details: 'Request for business loan to expand teaching materials shop',
+    priority: 'medium'
+  },
+  {
+    id: 2,
+    type: 'membership',
+    applicantName: 'David Brown',
+    applicationDate: '2024-06-19',
+    status: 'pending',
+    details: 'New member application - Teacher at Local Primary School',
+    priority: 'low',
+    memberData: {
+      name: 'David Brown',
+      email: 'david@example.com',
+      phone: '+234 800 456 7890',
+      sex: 'Male',
+      homeAddress: '456 Cedar Street',
+      town: 'Port Harcourt',
+      occupation: 'Teacher'
+    }
+  }
+];
+
+const initialActivities: Activity[] = [
+  {
+    id: 1,
+    type: 'payment',
+    description: 'Loan repayment from John Doe',
+    amount: '₦6,250',
+    time: '2024-06-20 10:30 AM',
+    adminId: 'ADMIN001',
+    adminName: 'Admin User',
+    memberId: 1,
+    memberName: 'John Doe'
+  },
+  {
+    id: 2,
+    type: 'savings',
+    description: 'Savings deposit from Alice Johnson',
+    amount: '₦15,000',
+    time: '2024-06-20 09:15 AM',
+    adminId: 'ADMIN001',
+    adminName: 'Admin User',
+    memberId: 2,
+    memberName: 'Alice Johnson'
+  }
+];
+
 export const useAppState = () => {
   const [state, setState] = useState<AppState>({
     members: initialMembers,
     loans: initialLoans,
     investments: initialInvestments,
-    approvals: [],
-    activities: [],
+    approvals: initialApprovals,
+    activities: initialActivities,
     notifications: [],
     agms: [],
     adminLogs: [],
@@ -556,6 +613,66 @@ export const useAppState = () => {
     addAdminLog(adminId, adminName, 'Payment Allocation', `Allocated payment for member ${memberId}`, undefined, totalAmount);
   };
 
+  // Add missing functions needed by components
+  const updateMemberBalance = (memberId: number, amount: number) => {
+    setState(prev => ({
+      ...prev,
+      members: prev.members.map(member => 
+        member.id === memberId 
+          ? { ...member, balance: member.balance + amount }
+          : member
+      )
+    }));
+  };
+
+  const approveApplication = (approvalId: number) => {
+    setState(prev => ({
+      ...prev,
+      approvals: prev.approvals.map(approval => 
+        approval.id === approvalId 
+          ? { ...approval, status: 'approved' as const }
+          : approval
+      )
+    }));
+
+    // Add activity log
+    const approval = state.approvals.find(a => a.id === approvalId);
+    if (approval) {
+      addActivity({
+        type: 'approval',
+        description: `${approval.type} application approved for ${approval.applicantName}`,
+        amount: approval.amount ? `₦${approval.amount.toLocaleString()}` : undefined,
+        time: 'Just now',
+        adminId: 'ADMIN001',
+        adminName: 'Admin User'
+      });
+    }
+  };
+
+  const rejectApplication = (approvalId: number) => {
+    setState(prev => ({
+      ...prev,
+      approvals: prev.approvals.map(approval => 
+        approval.id === approvalId 
+          ? { ...approval, status: 'rejected' as const }
+          : approval
+      )
+    }));
+
+    // Add activity log
+    const approval = state.approvals.find(a => a.id === approvalId);
+    if (approval) {
+      addActivity({
+        type: 'approval',
+        description: `${approval.type} application rejected for ${approval.applicantName}`,
+        amount: approval.amount ? `₦${approval.amount.toLocaleString()}` : undefined,
+        time: 'Just now',
+        adminId: 'ADMIN001',
+        adminName: 'Admin User'
+      });
+    }
+  };
+
   // Investment management
   const createInvestment = (investment: Omit<Investment, 'id' | 'createdDate' | 'applications'>) => {
     const newInvestment: Investment = {
@@ -668,6 +785,9 @@ export const useAppState = () => {
     addActivity,
     addAdminLog,
     addSavings,
+    updateMemberBalance,
+    approveApplication,
+    rejectApplication,
     createInvestment,
     applyForInvestment,
     applyWeeklyFines,
