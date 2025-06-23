@@ -979,6 +979,176 @@ export const useAppState = () => {
     dormantMembers: state.members.filter(member => member.status === 'dormant').length
   };
 
+  // Add new functions for AGM management
+  const createAGM = (agmData: Omit<AGM, 'id' | 'attendees' | 'status'>) => {
+    const newAGM: AGM = {
+      ...agmData,
+      id: Date.now(),
+      attendees: state.members.map(member => ({
+        memberId: member.id,
+        memberName: member.name,
+        rsvpStatus: 'pending' as const
+      })),
+      status: 'upcoming'
+    };
+
+    setState(prev => ({
+      ...prev,
+      agms: [...prev.agms, newAGM]
+    }));
+
+    // Notify all members
+    state.members.forEach(member => {
+      const notification: Notification = {
+        id: Date.now() + member.id,
+        memberId: member.id,
+        title: 'New AGM Scheduled',
+        message: `${agmData.title} has been scheduled for ${new Date(agmData.date).toLocaleDateString()}. Please check your dashboard for details.`,
+        type: 'general',
+        date: new Date().toISOString(),
+        read: false,
+        actionRequired: true,
+        relatedId: newAGM.id
+      };
+
+      setState(prev => ({
+        ...prev,
+        notifications: [...prev.notifications, notification]
+      }));
+    });
+
+    addActivity({
+      type: 'admin',
+      description: `AGM created: ${agmData.title}`,
+      time: 'Just now',
+      adminId: 'ADMIN001',
+      adminName: 'Admin User'
+    });
+
+    addAdminLog('ADMIN001', 'Admin User', 'AGM Creation', `Created new AGM: ${agmData.title}`);
+  };
+
+  const updateAGMRSVP = (agmId: number, memberId: number, status: 'attending' | 'not_attending') => {
+    setState(prev => ({
+      ...prev,
+      agms: prev.agms.map(agm => 
+        agm.id === agmId 
+          ? {
+              ...agm,
+              attendees: agm.attendees.map(attendee =>
+                attendee.memberId === memberId
+                  ? { ...attendee, rsvpStatus: status }
+                  : attendee
+              )
+            }
+          : agm
+      )
+    }));
+  };
+
+  // Automated fine system
+  const applyAutomatedFines = () => {
+    setState(prev => {
+      const updatedMembers = prev.members.map(member => {
+        if (member.loanBalance > 0) {
+          const loan = prev.loans.find(l => l.memberId === member.membershipId && l.status === 'approved');
+          if (loan && new Date(loan.nextPaymentDate) < new Date()) {
+            const fine = member.loanBalance * 0.02; // 2% fine
+            
+            addAdminLog('SYSTEM', 'System', 'Auto Fine Applied', 
+              `Applied 2% fine to ${member.name} for missed loan payment`, member.name, fine);
+
+            // Notify guarantors
+            member.guarantorFor.forEach(guarantorInfo => {
+              const guarantor = prev.members.find(m => m.id === guarantorInfo.memberId);
+              if (guarantor) {
+                const notification: Notification = {
+                  id: Date.now() + guarantor.id,
+                  memberId: guarantor.id,
+                  title: 'Loan Default Alert',
+                  message: `${member.name} has missed a scheduled repayment. Please check in with them.`,
+                  type: 'default',
+                  date: new Date().toISOString(),
+                  read: false,
+                  actionRequired: true
+                };
+
+                setState(prev => ({
+                  ...prev,
+                  notifications: [...prev.notifications, notification]
+                }));
+              }
+            });
+
+            return { ...member, fines: member.fines + fine };
+          }
+        }
+        return member;
+      });
+
+      return { ...prev, members: updatedMembers };
+    });
+  };
+
+  // Broadcast messaging
+  const sendBroadcastMessage = (title: string, message: string, targetMembers: number[] = []) => {
+    const recipients = targetMembers.length > 0 
+      ? state.members.filter(m => targetMembers.includes(m.id))
+      : state.members;
+
+    recipients.forEach(member => {
+      const notification: Notification = {
+        id: Date.now() + member.id,
+        memberId: member.id,
+        title,
+        message,
+        type: 'general',
+        date: new Date().toISOString(),
+        read: false,
+        actionRequired: false
+      };
+
+      setState(prev => ({
+        ...prev,
+        notifications: [...prev.notifications, notification]
+      }));
+    });
+
+    addAdminLog('ADMIN001', 'Admin User', 'Broadcast Message', `Sent message "${title}" to ${recipients.length} members`);
+  };
+
+  // Feedback system
+  const submitFeedback = (memberId: number, feedbackData: Omit<Feedback, 'id' | 'memberName' | 'status' | 'date'>) => {
+    const member = state.members.find(m => m.id === memberId);
+    if (!member) return;
+
+    const newFeedback: Feedback = {
+      ...feedbackData,
+      id: Date.now(),
+      memberName: member.name,
+      status: 'new',
+      date: new Date().toISOString()
+    };
+
+    setState(prev => ({
+      ...prev,
+      feedback: [...prev.feedback, newFeedback]
+    }));
+  };
+
+  const updateFeedbackStatus = (feedbackId: number, status: Feedback['status'], response?: string) => {
+    setState(prev => ({
+      ...prev,
+      feedback: prev.feedback.map(f => 
+        f.id === feedbackId 
+          ? { ...f, status, response }
+          : f
+      )
+    }));
+
+    addAdminLog('ADMIN001', 'Admin User', 'Feedback Update', `Updated feedback status to ${status}`);
+  };
+
   return {
     ...state,
     stats,
@@ -997,6 +1167,12 @@ export const useAppState = () => {
     applyForInvestment,
     approveInvestment,
     applyWeeklyFines,
-    checkDormantMembers
+    checkDormantMembers,
+    createAGM,
+    updateAGMRSVP,
+    applyAutomatedFines,
+    sendBroadcastMessage,
+    submitFeedback,
+    updateFeedbackStatus
   };
 };

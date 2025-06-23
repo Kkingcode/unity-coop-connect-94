@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,7 +16,9 @@ import {
   UserCheck,
   MessageSquare,
   BarChart3,
-  Package
+  Package,
+  FileText,
+  Archive
 } from 'lucide-react';
 import { Screen } from '@/pages/Index';
 import { useAppState } from '@/hooks/useAppState';
@@ -29,6 +30,9 @@ import ApprovalsManagement from './admin/ApprovalsManagement';
 import MessagesCenter from './admin/MessagesCenter';
 import ReportsCenter from './admin/ReportsCenter';
 import AdminSettings from './admin/AdminSettings';
+import AGMManagement from './admin/AGMManagement';
+import AuditTrail from './admin/AuditTrail';
+import MemberDocuments from './admin/MemberDocuments';
 
 interface AdminDashboardProps {
   user: any;
@@ -36,7 +40,7 @@ interface AdminDashboardProps {
   onLogout: () => void;
 }
 
-type AdminScreen = 'dashboard' | 'members' | 'loans' | 'savings' | 'investments' | 'approvals' | 'messages' | 'reports' | 'settings';
+type AdminScreen = 'dashboard' | 'members' | 'loans' | 'savings' | 'investments' | 'approvals' | 'messages' | 'reports' | 'settings' | 'agm' | 'audit' | 'documents';
 
 const AdminDashboard = ({ user, onNavigate, onLogout }: AdminDashboardProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -97,6 +101,9 @@ const AdminDashboard = ({ user, onNavigate, onLogout }: AdminDashboardProps) => 
     { icon: UserCheck, label: 'Approvals', screen: 'approvals' as AdminScreen },
     { icon: MessageSquare, label: 'Messages', screen: 'messages' as AdminScreen },
     { icon: BarChart3, label: 'Reports', screen: 'reports' as AdminScreen },
+    { icon: Users, label: 'AGM', screen: 'agm' as AdminScreen },
+    { icon: FileText, label: 'Audit Trail', screen: 'audit' as AdminScreen },
+    { icon: Archive, label: 'Documents', screen: 'documents' as AdminScreen },
     { icon: Settings, label: 'Settings', screen: 'settings' as AdminScreen },
   ];
 
@@ -121,6 +128,12 @@ const AdminDashboard = ({ user, onNavigate, onLogout }: AdminDashboardProps) => 
         return <MessagesCenter />;
       case 'reports':
         return <ReportsCenter />;
+      case 'agm':
+        return <AGMManagement />;
+      case 'audit':
+        return <AuditTrail />;
+      case 'documents':
+        return <MemberDocuments />;
       case 'settings':
         return <AdminSettings />;
       default:
