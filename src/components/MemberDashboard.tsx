@@ -1,24 +1,20 @@
 
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
-  Home, 
-  CreditCard, 
-  History, 
+  User, 
+  DollarSign, 
+  TrendingUp, 
   Bell, 
-  Target,
-  Eye,
-  EyeOff,
-  TrendingUp,
-  Wallet,
+  FileText, 
+  CreditCard,
+  Package,
   LogOut,
-  Package
+  AlertTriangle
 } from 'lucide-react';
 import { Screen } from '@/pages/Index';
-import BottomNavigation from '@/components/BottomNavigation';
-import MemberInvestmentDashboard from '@/components/MemberInvestmentDashboard';
+import { useAppState } from '@/hooks/useAppState';
 
 interface MemberDashboardProps {
   user: any;
@@ -27,8 +23,7 @@ interface MemberDashboardProps {
 }
 
 const MemberDashboard = ({ user, onNavigate, onLogout }: MemberDashboardProps) => {
-  const [showBalance, setShowBalance] = useState(true);
-  const [activeTab, setActiveTab] = useState('home');
+  const { investments } = useAppState();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-NG', {
@@ -37,200 +32,206 @@ const MemberDashboard = ({ user, onNavigate, onLogout }: MemberDashboardProps) =
     }).format(amount);
   };
 
-  const quickActions = [
-    {
-      icon: <CreditCard className="h-6 w-6" />,
-      title: 'Apply for Loan',
-      description: 'Quick loan application',
-      color: 'bg-purple-500',
-      action: () => onNavigate('loan-application')
-    },
-    {
-      icon: <Package className="h-6 w-6" />,
-      title: 'Investments',
-      description: 'View available investments',
-      color: 'bg-emerald-500',
-      action: () => onNavigate('member-investments')
-    },
-    {
-      icon: <History className="h-6 w-6" />,
-      title: 'Transactions',
-      description: 'View transaction history',
-      color: 'bg-green-500',
-      action: () => onNavigate('transaction-history')
-    },
-    {
-      icon: <Bell className="h-6 w-6" />,
-      title: 'Notifications',
-      description: '3 new messages',
-      color: 'bg-orange-500',
-      action: () => onNavigate('notifications-center')
-    }
-  ];
+  // Check if user has any investments
+  const userInvestments = investments.filter(inv => 
+    inv.applications.some(app => app.memberId === user.id)
+  );
 
-  const recentTransactions = [
-    { id: 1, type: 'Credit', amount: 50000, description: 'Monthly Savings', date: '2024-06-18' },
-    { id: 2, type: 'Debit', amount: -15000, description: 'Loan Repayment', date: '2024-06-15' },
-    { id: 3, type: 'Credit', amount: 25000, description: 'Dividend Payment', date: '2024-06-10' },
-  ];
-
-  if (activeTab === 'investments') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-purple-50/30 pb-20">
-        <div className="gradient-primary text-white p-6 rounded-b-3xl">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h1 className="text-2xl font-bold">Investments</h1>
-              <p className="text-purple-100">Manage your investment portfolio</p>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-white hover:bg-white/20"
-              onClick={onLogout}
-            >
-              <LogOut className="h-5 w-5" />
-            </Button>
-          </div>
-        </div>
-
-        <div className="p-6">
-          <MemberInvestmentDashboard user={user} onNavigate={onNavigate} />
-        </div>
-
-        <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} onNavigate={onNavigate} />
-      </div>
-    );
-  }
+  const hasOverdueInvestments = userInvestments.some(inv => {
+    const userApp = inv.applications.find(app => app.memberId === user.id);
+    if (!userApp) return false;
+    
+    const startDate = new Date(userApp.applicationDate);
+    const endDate = new Date(startDate.getTime() + (inv.totalWeeks * 7 * 24 * 60 * 60 * 1000));
+    const today = new Date();
+    const isOverdue = today > endDate && userApp.remainingAmount > 0;
+    
+    return isOverdue;
+  });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-purple-50/30 pb-20">
-      {/* Header */}
-      <div className="gradient-primary text-white p-6 rounded-b-3xl">
-        <div className="flex justify-between items-center mb-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-purple-50/30 p-4">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
           <div>
-            <h1 className="text-2xl font-bold">Welcome back,</h1>
-            <p className="text-purple-100">{user?.name || 'Member'}</p>
+            <h1 className="text-3xl font-bold text-gray-900">Welcome back, {user.name}!</h1>
+            <p className="text-gray-600">Member ID: {user.id}</p>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-white hover:bg-white/20"
-            onClick={onLogout}
-          >
-            <LogOut className="h-5 w-5" />
+          <Button variant="outline" onClick={onLogout} className="flex items-center gap-2">
+            <LogOut className="h-4 w-4" />
+            Sign Out
           </Button>
         </div>
 
-        {/* Balance Card */}
-        <Card className="glass-card border-white/20">
-          <CardContent className="p-6">
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Total Balance</p>
-                <div className="flex items-center gap-2">
-                  <span className="text-3xl font-bold text-gray-900">
-                    {showBalance ? formatCurrency(user?.balance || 0) : '••••••••'}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => setShowBalance(!showBalance)}
-                  >
-                    {showBalance ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </Button>
+        {/* Overdue Investment Alert */}
+        {hasOverdueInvestments && (
+          <Card className="border-red-200 bg-red-50 mb-6">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 text-red-700">
+                <AlertTriangle className="h-5 w-5" />
+                <div>
+                  <p className="font-medium">Investment Payment Overdue!</p>
+                  <p className="text-sm text-red-600">You have overdue investment payments. Please check your investments section.</p>
                 </div>
               </div>
-              <div className="text-right">
-                <div className="flex items-center gap-1 text-green-600 mb-1">
-                  <TrendingUp className="h-4 w-4" />
-                  <span className="text-sm font-medium">+12.5%</span>
-                </div>
-                <p className="text-xs text-gray-500">This month</p>
-              </div>
-            </div>
+            </CardContent>
+          </Card>
+        )}
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center p-3 bg-purple-50 rounded-lg">
-                <p className="text-xs text-gray-600 mb-1">Savings</p>
-                <p className="font-semibold text-gray-900">
-                  {showBalance ? formatCurrency(user?.savings || 0) : '••••••'}
-                </p>
-              </div>
-              <div className="text-center p-3 bg-red-50 rounded-lg">
-                <p className="text-xs text-gray-600 mb-1">Loan Balance</p>
-                <p className="font-semibold text-red-600">
-                  {showBalance ? formatCurrency(user?.loanBalance || 0) : '••••••'}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+        {/* Account Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card className="glass-card">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Account Balance</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(user.balance)}</div>
+              <p className="text-xs text-muted-foreground">Available funds</p>
+            </CardContent>
+          </Card>
 
-      {/* Quick Actions */}
-      <div className="p-6">
-        <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          {quickActions.map((action, index) => (
-            <Card 
-              key={index} 
-              className="glass-card hover:shadow-lg transition-all duration-200 cursor-pointer transform hover:scale-105"
-              onClick={action.action}
-            >
-              <CardContent className="p-4">
-                <div className={`${action.color} w-12 h-12 rounded-lg flex items-center justify-center mb-3 text-white`}>
-                  {action.icon}
-                </div>
-                <h3 className="font-medium mb-1">{action.title}</h3>
-                <p className="text-sm text-gray-600">{action.description}</p>
-              </CardContent>
-            </Card>
-          ))}
+          <Card className="glass-card">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Savings</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(user.savings)}</div>
+              <p className="text-xs text-muted-foreground">Total savings</p>
+            </CardContent>
+          </Card>
+
+          <Card className="glass-card">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Loan Balance</CardTitle>
+              <CreditCard className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(user.loanBalance)}</div>
+              <p className="text-xs text-muted-foreground">Outstanding loan</p>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Recent Transactions */}
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold">Recent Transactions</h2>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => onNavigate('transaction-history')}
-            className="text-purple-600 hover:text-purple-700"
-          >
-            View All
-          </Button>
-        </div>
-        
-        <Card className="glass-card">
-          <CardContent className="p-0">
-            {recentTransactions.map((transaction, index) => (
-              <div key={transaction.id} className={`p-4 flex justify-between items-center ${index !== recentTransactions.length - 1 ? 'border-b border-gray-100' : ''}`}>
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${transaction.type === 'Credit' ? 'bg-green-100' : 'bg-red-100'}`}>
-                    <Wallet className={`h-5 w-5 ${transaction.type === 'Credit' ? 'text-green-600' : 'text-red-600'}`} />
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <Card className="glass-card hover:shadow-lg transition-all duration-200 cursor-pointer" onClick={() => onNavigate('loan-application')}>
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-blue-100 rounded-full">
+                  <CreditCard className="h-6 w-6 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Apply for Loan</h3>
+                  <p className="text-sm text-gray-600">Submit a new loan application</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="glass-card hover:shadow-lg transition-all duration-200 cursor-pointer" onClick={() => onNavigate('member-investments')}>
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-purple-100 rounded-full">
+                  <Package className="h-6 w-6 text-purple-600" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold">Investments</h3>
+                    {hasOverdueInvestments && (
+                      <Badge className="bg-red-100 text-red-800 text-xs">
+                        Overdue
+                      </Badge>
+                    )}
                   </div>
+                  <p className="text-sm text-gray-600">View and manage investments</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="glass-card hover:shadow-lg transition-all duration-200 cursor-pointer" onClick={() => onNavigate('transaction-history')}>
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-green-100 rounded-full">
+                  <FileText className="h-6 w-6 text-green-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Transaction History</h3>
+                  <p className="text-sm text-gray-600">View all transactions</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="glass-card hover:shadow-lg transition-all duration-200 cursor-pointer" onClick={() => onNavigate('notifications-center')}>
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-yellow-100 rounded-full">
+                  <Bell className="h-6 w-6 text-yellow-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Notifications</h3>
+                  <p className="text-sm text-gray-600">Check your messages</p>
+                  <Badge className="bg-red-500 text-white text-xs mt-1">3 New</Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="glass-card">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-gray-100 rounded-full">
+                  <User className="h-6 w-6 text-gray-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Profile Settings</h3>
+                  <p className="text-sm text-gray-600">Update your information</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Recent Activity */}
+        <Card className="glass-card mt-8">
+          <CardHeader>
+            <CardTitle>Recent Activity</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between py-2 border-b">
+                <div>
+                  <p className="font-medium">Monthly Savings Contribution</p>
+                  <p className="text-sm text-gray-600">December 2024</p>
+                </div>
+                <Badge className="bg-green-100 text-green-800">Completed</Badge>
+              </div>
+              <div className="flex items-center justify-between py-2 border-b">
+                <div>
+                  <p className="font-medium">Loan Payment</p>
+                  <p className="text-sm text-gray-600">November 2024</p>
+                </div>
+                <Badge className="bg-blue-100 text-blue-800">Processed</Badge>
+              </div>
+              {userInvestments.length > 0 && (
+                <div className="flex items-center justify-between py-2">
                   <div>
-                    <p className="font-medium">{transaction.description}</p>
-                    <p className="text-sm text-gray-600">{transaction.date}</p>
+                    <p className="font-medium">Investment Payment</p>
+                    <p className="text-sm text-gray-600">Check investments section</p>
                   </div>
-                </div>
-                <div className="text-right">
-                  <p className={`font-semibold ${transaction.type === 'Credit' ? 'text-green-600' : 'text-red-600'}`}>
-                    {transaction.type === 'Credit' ? '+' : ''}{formatCurrency(Math.abs(transaction.amount))}
-                  </p>
-                  <Badge variant={transaction.type === 'Credit' ? 'default' : 'destructive'} className="text-xs">
-                    {transaction.type}
+                  <Badge className={hasOverdueInvestments ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}>
+                    {hasOverdueInvestments ? "Overdue" : "Active"}
                   </Badge>
                 </div>
-              </div>
-            ))}
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
-
-      <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} onNavigate={onNavigate} />
     </div>
   );
 };

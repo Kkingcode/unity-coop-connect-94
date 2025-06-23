@@ -31,7 +31,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
       } else if (memberID && password) {
         // Check if password is correct (basic validation)
         if (password.length < 3) {
-          setError('Please enter the correct login information. Check your Member ID and password.');
+          setError('Incorrect login details. Please check and try again.');
           setIsLoading(false);
           return;
         }
@@ -44,7 +44,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
           loanBalance: 25000
         });
       } else {
-        setError('Please enter the correct login information. Check your Member ID and password.');
+        setError('Incorrect login details. Please check and try again.');
       }
       setIsLoading(false);
     }, 1500);
@@ -123,7 +123,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
               <p className="text-sm text-gray-600">
                 Demo credentials: <br />
                 <span className="font-mono bg-gray-100 px-2 py-1 rounded text-xs">
-                  Member: any ID + password
+                  Member: any ID + password (min 3 chars)
                 </span>
                 <br />
                 <span className="font-mono bg-gray-100 px-2 py-1 rounded text-xs">
