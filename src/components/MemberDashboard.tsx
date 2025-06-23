@@ -13,10 +13,12 @@ import {
   EyeOff,
   TrendingUp,
   Wallet,
-  LogOut
+  LogOut,
+  Package
 } from 'lucide-react';
 import { Screen } from '@/pages/Index';
 import BottomNavigation from '@/components/BottomNavigation';
+import MemberInvestmentDashboard from '@/components/MemberInvestmentDashboard';
 
 interface MemberDashboardProps {
   user: any;
@@ -44,18 +46,18 @@ const MemberDashboard = ({ user, onNavigate, onLogout }: MemberDashboardProps) =
       action: () => onNavigate('loan-application')
     },
     {
+      icon: <Package className="h-6 w-6" />,
+      title: 'Investments',
+      description: 'View available investments',
+      color: 'bg-emerald-500',
+      action: () => onNavigate('member-investments')
+    },
+    {
       icon: <History className="h-6 w-6" />,
       title: 'Transactions',
       description: 'View transaction history',
       color: 'bg-green-500',
       action: () => onNavigate('transaction-history')
-    },
-    {
-      icon: <Target className="h-6 w-6" />,
-      title: 'Savings Goal',
-      description: 'Set and track goals',
-      color: 'bg-blue-500',
-      action: () => {}
     },
     {
       icon: <Bell className="h-6 w-6" />,
@@ -71,6 +73,35 @@ const MemberDashboard = ({ user, onNavigate, onLogout }: MemberDashboardProps) =
     { id: 2, type: 'Debit', amount: -15000, description: 'Loan Repayment', date: '2024-06-15' },
     { id: 3, type: 'Credit', amount: 25000, description: 'Dividend Payment', date: '2024-06-10' },
   ];
+
+  if (activeTab === 'investments') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-purple-50/30 pb-20">
+        <div className="gradient-primary text-white p-6 rounded-b-3xl">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h1 className="text-2xl font-bold">Investments</h1>
+              <p className="text-purple-100">Manage your investment portfolio</p>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-white hover:bg-white/20"
+              onClick={onLogout}
+            >
+              <LogOut className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+
+        <div className="p-6">
+          <MemberInvestmentDashboard user={user} onNavigate={onNavigate} />
+        </div>
+
+        <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} onNavigate={onNavigate} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-purple-50/30 pb-20">

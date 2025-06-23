@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Building2, Eye, EyeOff } from 'lucide-react';
+import { Building2, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 import { UserRole } from '@/pages/Index';
 
 interface LoginScreenProps {
@@ -16,17 +16,25 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError('');
 
     // Simulate login delay
     setTimeout(() => {
-      // Mock login logic
+      // Mock login logic with validation
       if (memberID === 'admin' && password === 'admin123') {
         onLogin('admin', { id: 'admin', name: 'Admin User', role: 'admin' });
       } else if (memberID && password) {
+        // Check if password is correct (basic validation)
+        if (password.length < 3) {
+          setError('Please enter the correct login information. Check your Member ID and password.');
+          setIsLoading(false);
+          return;
+        }
         onLogin('member', { 
           id: memberID, 
           name: 'John Doe', 
@@ -35,6 +43,8 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
           savings: 45000,
           loanBalance: 25000
         });
+      } else {
+        setError('Please enter the correct login information. Check your Member ID and password.');
       }
       setIsLoading(false);
     }, 1500);
@@ -60,6 +70,13 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-red-600" />
+                  <p className="text-red-700 text-sm">{error}</p>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="memberID">Member ID</Label>
                 <Input

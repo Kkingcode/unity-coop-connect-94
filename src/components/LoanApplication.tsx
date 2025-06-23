@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, CreditCard, User, FileText, Search, AlertTriangle, Check } from 'lucide-react';
+import { ArrowLeft, Search, User, DollarSign, Calendar } from 'lucide-react';
 import { Screen } from '@/pages/Index';
 import { useAppState } from '@/hooks/useAppState';
 
@@ -15,397 +15,353 @@ interface LoanApplicationProps {
 }
 
 const LoanApplication = ({ user, onNavigate }: LoanApplicationProps) => {
-  const { searchMemberByName, canMemberBeGuarantor, submitLoanApplication } = useAppState();
-  const [formData, setFormData] = useState({
+  const { members, createLoanApplication, addAdminLog } = useAppState();
+  const [step, setStep] = useState(1);
+  const [loanData, setLoanData] = useState({
     amount: '',
     purpose: '',
-    duration: '24',
-    guarantor1Search: '',
-    guarantor1Selected: null as any,
-    guarantor2Search: '',
-    guarantor2Selected: null as any,
-    employmentStatus: '',
-    monthlyIncome: '',
-    additionalInfo: ''
+    duration: '12',
+    guarantor1: null as any,
+    guarantor2: null as any
   });
+  const [guarantorSearch, setGuarantorSearch] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [selectedGuarantor, setSelectedGuarantor] = useState<1 | 2 | null>(null);
 
-  const [guarantor1Results, setGuarantor1Results] = useState<any[]>([]);
-  const [guarantor2Results, setGuarantor2Results] = useState<any[]>([]);
-  const [showGuarantor1Results, setShowGuarantor1Results] = useState(false);
-  const [showGuarantor2Results, setShowGuarantor2Results] = useState(false);
+  const userSavings = user?.savings || 0;
+  const loanAmount = Number(loanData.amount);
 
-  // Search for guarantor 1
   useEffect(() => {
-    if (formData.guarantor1Search.length > 2) {
-      const results = searchMemberByName(formData.guarantor1Search)
-        .filter(member => member.id !== user.id);
-      setGuarantor1Results(results);
-      setShowGuarantor1Results(true);
+    if (guarantorSearch) {
+      const results = members.filter(member => 
+        member.id !== user.id &&
+        (member.name.toLowerCase().includes(guarantorSearch.toLowerCase()) ||
+         member.membershipId.toLowerCase().includes(guarantorSearch.toLowerCase()))
+      ).slice(0, 5);
+      setSearchResults(results);
     } else {
-      setShowGuarantor1Results(false);
+      setSearchResults([]);
     }
-  }, [formData.guarantor1Search, user.id, searchMemberByName]);
+  }, [guarantorSearch, members, user.id]);
 
-  // Search for guarantor 2
-  useEffect(() => {
-    if (formData.guarantor2Search.length > 2) {
-      const results = searchMemberByName(formData.guarantor2Search)
-        .filter(member => member.id !== user.id && member.id !== formData.guarantor1Selected?.id);
-      setGuarantor2Results(results);
-      setShowGuarantor2Results(true);
-    } else {
-      setShowGuarantor2Results(false);
-    }
-  }, [formData.guarantor2Search, formData.guarantor1Selected, user.id, searchMemberByName]);
-
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleGuarantorSelect = (guarantor: any, guarantorNumber: 1 | 2) => {
-    const canBeGuarantor = canMemberBeGuarantor(guarantor.id);
-    
-    if (!canBeGuarantor) {
-      alert('This member cannot be a guarantor as they currently have an active loan.');
-      return;
-    }
-
-    if (guarantorNumber === 1) {
-      setFormData(prev => ({
-        ...prev,
-        guarantor1Selected: guarantor,
-        guarantor1Search: guarantor.name
-      }));
-      setShowGuarantor1Results(false);
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        guarantor2Selected: guarantor,
-        guarantor2Search: guarantor.name
-      }));
-      setShowGuarantor2Results(false);
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.guarantor1Selected || !formData.guarantor2Selected) {
-      alert('Please select valid guarantors before submitting.');
-      return;
-    }
-
-    const loanData = {
-      memberId: user.id,
-      memberName: user.name,
-      amount: Number(formData.amount),
-      purpose: formData.purpose,
-      duration: Number(formData.duration),
-      guarantors: [
-        { id: formData.guarantor1Selected.id, name: formData.guarantor1Selected.name },
-        { id: formData.guarantor2Selected.id, name: formData.guarantor2Selected.name }
-      ],
-      employmentStatus: formData.employmentStatus,
-      monthlyIncome: Number(formData.monthlyIncome),
-      additionalInfo: formData.additionalInfo
-    };
-
-    submitLoanApplication(loanData);
-    alert('Loan application submitted successfully! Your guarantors will be notified.');
-    onNavigate('member-dashboard');
-  };
-
-  const formatCurrency = (amount: string) => {
-    if (!amount) return '';
+  const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-NG', {
       style: 'currency',
       currency: 'NGN',
-    }).format(Number(amount));
+    }).format(amount);
   };
 
-  const blurBalance = (balance: number) => {
-    return `₦${'*'.repeat(balance.toString().length)}`;
+  const selectGuarantor = (guarantor: any) => {
+    if (selectedGuarantor === 1) {
+      setLoanData({ ...loanData, guarantor1: guarantor });
+    } else if (selectedGuarantor === 2) {
+      setLoanData({ ...loanData, guarantor2: guarantor });
+    }
+    setGuarantorSearch('');
+    setSearchResults([]);
+    setSelectedGuarantor(null);
+  };
+
+  const canUseOneGuarantor = () => {
+    if (!loanData.guarantor1 || !loanAmount) return false;
+    const guarantor1Savings = loanData.guarantor1.balance || 0;
+    return (guarantor1Savings + userSavings) >= loanAmount;
+  };
+
+  const handleSubmit = () => {
+    const requiredGuarantors = canUseOneGuarantor() ? 1 : 2;
+    
+    if (requiredGuarantors === 2 && !loanData.guarantor2) {
+      alert('You need two guarantors for this loan amount. Please select a second guarantor.');
+      return;
+    }
+
+    const application = {
+      memberId: user.id,
+      memberName: user.name,
+      amount: loanAmount,
+      purpose: loanData.purpose,
+      duration: Number(loanData.duration),
+      guarantor1: loanData.guarantor1,
+      guarantor2: requiredGuarantors === 2 ? loanData.guarantor2 : null,
+      status: 'pending',
+      applicationDate: new Date().toISOString(),
+      monthlyPayment: loanAmount / Number(loanData.duration)
+    };
+
+    createLoanApplication(application);
+    
+    addAdminLog(user.id, user.name, 'Loan Application', 
+      `Applied for ${formatCurrency(loanAmount)} loan with ${requiredGuarantors} guarantor(s)`);
+
+    alert('Loan application submitted successfully! Guarantors will be notified.');
+    onNavigate('member-dashboard');
+  };
+
+  const renderGuarantorRequirement = () => {
+    if (!loanAmount) return null;
+
+    if (canUseOneGuarantor()) {
+      return (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+          <p className="text-green-700 font-medium">✓ One Guarantor Required</p>
+          <p className="text-green-600 text-sm">
+            Your savings ({formatCurrency(userSavings)}) + Guarantor's savings covers the loan amount
+          </p>
+        </div>
+      );
+    } else {
+      return (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+          <p className="text-blue-700 font-medium">Two Guarantors Required</p>
+          <p className="text-blue-600 text-sm">
+            Combined savings must be at least {formatCurrency(loanAmount)}
+          </p>
+        </div>
+      );
+    }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-purple-50/30 p-4">
+      <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => onNavigate('member-dashboard')}
+            className="text-gray-600"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Loan Application</h1>
-            <p className="text-gray-600">Apply for a loan from ONCS</p>
+            <p className="text-gray-600">Apply for a loan with guarantor support</p>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Loan Details */}
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5" />
-                Loan Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Loan Amount *</label>
-                  <Input
-                    type="number"
-                    value={formData.amount}
-                    onChange={(e) => handleInputChange('amount', e.target.value)}
-                    placeholder="Enter amount"
-                    required
-                  />
-                  {formData.amount && (
-                    <p className="text-xs text-gray-600 mt-1">
-                      {formatCurrency(formData.amount)}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Duration (weeks) *</label>
-                  <select
-                    className="w-full p-2 border rounded-lg"
-                    value={formData.duration}
-                    onChange={(e) => handleInputChange('duration', e.target.value)}
-                    required
-                  >
-                    <option value="12">12 weeks</option>
-                    <option value="24">24 weeks</option>
-                    <option value="36">36 weeks</option>
-                    <option value="48">48 weeks</option>
-                  </select>
-                </div>
-              </div>
+        <Card className="glass-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="h-6 w-6 text-purple-600" />
+              Loan Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Loan Amount and Details */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-2">Purpose of Loan *</label>
-                <Textarea
-                  value={formData.purpose}
-                  onChange={(e) => handleInputChange('purpose', e.target.value)}
-                  placeholder="Describe the purpose of this loan"
-                  required
+                <label className="block text-sm font-medium mb-2">Loan Amount (₦)</label>
+                <Input
+                  type="number"
+                  placeholder="Enter loan amount"
+                  value={loanData.amount}
+                  onChange={(e) => setLoanData({ ...loanData, amount: e.target.value })}
                 />
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Guarantor Information */}
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Guarantor Information
-              </CardTitle>
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-4">
-                <div className="flex items-start gap-2">
-                  <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
-                  <div className="text-sm">
-                    <p className="font-medium text-amber-800">Important Notice:</p>
-                    <p className="text-amber-700">
-                      Your guarantors cannot apply for loans while you have an outstanding loan balance. 
-                      Make sure they understand this commitment before accepting.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Guarantor 1 */}
               <div>
-                <h4 className="font-medium mb-3">First Guarantor *</h4>
-                <div className="relative">
-                  <label className="block text-sm font-medium mb-2">Search by Name or Account Number</label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <label className="block text-sm font-medium mb-2">Duration (months)</label>
+                <select
+                  className="w-full p-2 border rounded-lg"
+                  value={loanData.duration}
+                  onChange={(e) => setLoanData({ ...loanData, duration: e.target.value })}
+                >
+                  <option value="6">6 months</option>
+                  <option value="12">12 months</option>
+                  <option value="18">18 months</option>
+                  <option value="24">24 months</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Purpose of Loan</label>
+              <Textarea
+                placeholder="Briefly describe the purpose of this loan"
+                value={loanData.purpose}
+                onChange={(e) => setLoanData({ ...loanData, purpose: e.target.value })}
+                rows={3}
+              />
+            </div>
+
+            {/* Guarantor Requirements */}
+            {renderGuarantorRequirement()}
+
+            {/* Monthly Payment Info */}
+            {loanAmount > 0 && (
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                <p className="text-purple-700 font-medium">Monthly Payment</p>
+                <p className="text-purple-600">
+                  {formatCurrency(loanAmount / Number(loanData.duration))} per month
+                </p>
+              </div>
+            )}
+
+            {/* Guarantor Selection */}
+            <div className="space-y-4">
+              <h3 className="font-semibold text-lg">Select Guarantor(s)</h3>
+              
+              {/* First Guarantor */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="block text-sm font-medium">First Guarantor *</label>
+                  {!loanData.guarantor1 && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setSelectedGuarantor(1)}
+                    >
+                      <Search className="h-4 w-4 mr-2" />
+                      Search Member
+                    </Button>
+                  )}
+                </div>
+
+                {loanData.guarantor1 ? (
+                  <Card className="border-green-200 bg-green-50">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">{loanData.guarantor1.name}</p>
+                          <p className="text-sm text-gray-600">{loanData.guarantor1.membershipId}</p>
+                          <p className="text-sm text-green-600">
+                            Balance: {formatCurrency(loanData.guarantor1.balance)}
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setLoanData({ ...loanData, guarantor1: null })}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : selectedGuarantor === 1 && (
+                  <div className="space-y-2">
                     <Input
-                      value={formData.guarantor1Search}
-                      onChange={(e) => handleInputChange('guarantor1Search', e.target.value)}
-                      placeholder="Type member name or account number..."
-                      className="pl-10"
-                      required
+                      placeholder="Search by name or member ID"
+                      value={guarantorSearch}
+                      onChange={(e) => setGuarantorSearch(e.target.value)}
                     />
-                  </div>
-                  
-                  {showGuarantor1Results && guarantor1Results.length > 0 && (
-                    <div className="absolute z-10 w-full bg-white border rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto">
-                      {guarantor1Results.map((member) => {
-                        const canBeGuarantor = canMemberBeGuarantor(member.id);
-                        return (
+                    {searchResults.length > 0 && (
+                      <div className="border rounded-lg max-h-48 overflow-y-auto">
+                        {searchResults.map((member) => (
                           <div
                             key={member.id}
-                            className={`p-3 hover:bg-gray-50 cursor-pointer border-b ${
-                              !canBeGuarantor ? 'opacity-50' : ''
-                            }`}
-                            onClick={() => canBeGuarantor && handleGuarantorSelect(member, 1)}
+                            className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
+                            onClick={() => selectGuarantor(member)}
                           >
-                            <div className="flex justify-between items-center">
+                            <div className="flex items-center justify-between">
                               <div>
                                 <p className="font-medium">{member.name}</p>
                                 <p className="text-sm text-gray-600">{member.membershipId}</p>
                               </div>
                               <div className="text-right">
-                                <p className="text-sm text-gray-600">Balance: {blurBalance(member.balance)}</p>
-                                {!canBeGuarantor && (
-                                  <Badge className="bg-red-100 text-red-800 text-xs">Has Active Loan</Badge>
-                                )}
+                                <p className="text-sm text-gray-600">Balance</p>
+                                <p className="font-medium text-green-600">••••••••</p>
                               </div>
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                {formData.guarantor1Selected && (
-                  <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Check className="h-4 w-4 text-green-600" />
-                      <span className="font-medium text-green-800">Selected Guarantor</span>
-                    </div>
-                    <p className="text-sm"><strong>Name:</strong> {formData.guarantor1Selected.name}</p>
-                    <p className="text-sm"><strong>ID:</strong> {formData.guarantor1Selected.membershipId}</p>
-                    <p className="text-sm"><strong>Balance:</strong> {blurBalance(formData.guarantor1Selected.balance)}</p>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
 
-              {/* Guarantor 2 */}
-              <div>
-                <h4 className="font-medium mb-3">Second Guarantor *</h4>
-                <div className="relative">
-                  <label className="block text-sm font-medium mb-2">Search by Name or Account Number</label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <Input
-                      value={formData.guarantor2Search}
-                      onChange={(e) => handleInputChange('guarantor2Search', e.target.value)}
-                      placeholder="Type member name or account number..."
-                      className="pl-10"
-                      required
-                    />
+              {/* Second Guarantor (if needed) */}
+              {!canUseOneGuarantor() && loanAmount > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-sm font-medium">Second Guarantor *</label>
+                    {!loanData.guarantor2 && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setSelectedGuarantor(2)}
+                      >
+                        <Search className="h-4 w-4 mr-2" />
+                        Search Member
+                      </Button>
+                    )}
                   </div>
-                  
-                  {showGuarantor2Results && guarantor2Results.length > 0 && (
-                    <div className="absolute z-10 w-full bg-white border rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto">
-                      {guarantor2Results.map((member) => {
-                        const canBeGuarantor = canMemberBeGuarantor(member.id);
-                        return (
-                          <div
-                            key={member.id}
-                            className={`p-3 hover:bg-gray-50 cursor-pointer border-b ${
-                              !canBeGuarantor ? 'opacity-50' : ''
-                            }`}
-                            onClick={() => canBeGuarantor && handleGuarantorSelect(member, 2)}
+
+                  {loanData.guarantor2 ? (
+                    <Card className="border-green-200 bg-green-50">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">{loanData.guarantor2.name}</p>
+                            <p className="text-sm text-gray-600">{loanData.guarantor2.membershipId}</p>
+                            <p className="text-sm text-green-600">
+                              Balance: {formatCurrency(loanData.guarantor2.balance)}
+                            </p>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setLoanData({ ...loanData, guarantor2: null })}
                           >
-                            <div className="flex justify-between items-center">
-                              <div>
-                                <p className="font-medium">{member.name}</p>
-                                <p className="text-sm text-gray-600">{member.membershipId}</p>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-sm text-gray-600">Balance: {blurBalance(member.balance)}</p>
-                                {!canBeGuarantor && (
-                                  <Badge className="bg-red-100 text-red-800 text-xs">Has Active Loan</Badge>
-                                )}
+                            Remove
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : selectedGuarantor === 2 && (
+                    <div className="space-y-2">
+                      <Input
+                        placeholder="Search by name or member ID"
+                        value={guarantorSearch}
+                        onChange={(e) => setGuarantorSearch(e.target.value)}
+                      />
+                      {searchResults.length > 0 && (
+                        <div className="border rounded-lg max-h-48 overflow-y-auto">
+                          {searchResults.map((member) => (
+                            <div
+                              key={member.id}
+                              className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
+                              onClick={() => selectGuarantor(member)}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="font-medium">{member.name}</p>
+                                  <p className="text-sm text-gray-600">{member.membershipId}</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-sm text-gray-600">Balance</p>
+                                  <p className="font-medium text-green-600">••••••••</p>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
+              )}
+            </div>
 
-                {formData.guarantor2Selected && (
-                  <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Check className="h-4 w-4 text-green-600" />
-                      <span className="font-medium text-green-800">Selected Guarantor</span>
-                    </div>
-                    <p className="text-sm"><strong>Name:</strong> {formData.guarantor2Selected.name}</p>
-                    <p className="text-sm"><strong>ID:</strong> {formData.guarantor2Selected.membershipId}</p>
-                    <p className="text-sm"><strong>Balance:</strong> {blurBalance(formData.guarantor2Selected.balance)}</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Employment & Income */}
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Employment & Income Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Employment Status *</label>
-                  <select
-                    className="w-full p-2 border rounded-lg"
-                    value={formData.employmentStatus}
-                    onChange={(e) => handleInputChange('employmentStatus', e.target.value)}
-                    required
-                  >
-                    <option value="">Select status</option>
-                    <option value="employed">Employed</option>
-                    <option value="self-employed">Self-Employed</option>
-                    <option value="business-owner">Business Owner</option>
-                    <option value="retired">Retired</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Monthly Income *</label>
-                  <Input
-                    type="number"
-                    value={formData.monthlyIncome}
-                    onChange={(e) => handleInputChange('monthlyIncome', e.target.value)}
-                    placeholder="Enter monthly income"
-                    required
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Additional Information</label>
-                <Textarea
-                  value={formData.additionalInfo}
-                  onChange={(e) => handleInputChange('additionalInfo', e.target.value)}
-                  placeholder="Any additional information that supports your application"
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Submit Button */}
-          <div className="flex gap-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onNavigate('member-dashboard')}
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="submit" 
-              className="bg-primary hover:bg-primary/90"
-              disabled={!formData.guarantor1Selected || !formData.guarantor2Selected}
-            >
-              Submit Application
-            </Button>
-          </div>
-        </form>
+            {/* Submit Button */}
+            <div className="pt-4">
+              <Button
+                onClick={handleSubmit}
+                className="w-full bg-purple-600 hover:bg-purple-700"
+                disabled={
+                  !loanData.amount || 
+                  !loanData.purpose || 
+                  !loanData.guarantor1 || 
+                  (!canUseOneGuarantor() && !loanData.guarantor2)
+                }
+              >
+                Submit Loan Application
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

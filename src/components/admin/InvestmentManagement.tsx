@@ -6,11 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Package, Users, TrendingUp, Eye, Calendar, DollarSign } from 'lucide-react';
+import { Plus, Package, Users, TrendingUp, Eye, Calendar, DollarSign, AlertTriangle } from 'lucide-react';
 import { useAppState } from '@/hooks/useAppState';
 
 const InvestmentManagement = () => {
-  const { investments, createInvestment, stats } = useAppState();
+  const { investments, createInvestment, stats, addAdminLog } = useAppState();
   const [activeTab, setActiveTab] = useState('overview');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newInvestment, setNewInvestment] = useState({
@@ -29,6 +29,32 @@ const InvestmentManagement = () => {
     }).format(amount);
   };
 
+  // Calculate total investment money to be returned
+  const calculateTotalInvestmentReturns = () => {
+    return investments.reduce((total, investment) => {
+      return total + investment.applications.reduce((investmentTotal, app) => {
+        return investmentTotal + (app.status === 'approved' ? app.remainingAmount : 0);
+      }, 0);
+    }, 0);
+  };
+
+  // Get defaulting members
+  const getDefaultingMembers = () => {
+    const defaulters: any[] = [];
+    investments.forEach(investment => {
+      investment.applications.forEach(app => {
+        if (app.status === 'approved' && app.weeksRemaining <= 0 && app.remainingAmount > 0) {
+          defaulters.push({
+            ...app,
+            productName: investment.productName,
+            investmentId: investment.id
+          });
+        }
+      });
+    });
+    return defaulters;
+  };
+
   const handleCreateInvestment = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -44,6 +70,11 @@ const InvestmentManagement = () => {
     };
 
     createInvestment(investment);
+    
+    // Log the activity
+    addAdminLog('ADMIN001', 'Admin User', 'Investment Created', 
+      `Created new investment "${investment.productName}" with ${investment.totalUnits} units at ${formatCurrency(investment.unitPrice)} each`);
+
     setShowCreateForm(false);
     setNewInvestment({
       productName: '',
@@ -54,7 +85,14 @@ const InvestmentManagement = () => {
       productImages: []
     });
     
-    alert('Investment product created successfully!');
+    alert('Investment product created successfully and broadcasted to all members!');
+  };
+
+  const handleGiveGracePeriod = (investmentId: string, memberId: string) => {
+    // Add 3 weeks grace period
+    addAdminLog('ADMIN001', 'Admin User', 'Grace Period Extended', 
+      `Extended 3 weeks grace period for member ${memberId} on investment ${investmentId}`);
+    alert('3 weeks grace period has been granted to the member.');
   };
 
   const getStatusColor = (status: string) => {
@@ -67,6 +105,9 @@ const InvestmentManagement = () => {
       default: return 'bg-gray-100 text-gray-800';
     }
   };
+
+  const totalInvestmentReturns = calculateTotalInvestmentReturns();
+  const defaultingMembers = getDefaultingMembers();
 
   if (showCreateForm) {
     return (
@@ -192,8 +233,8 @@ const InvestmentManagement = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Investments</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.totalInvestments)}</p>
+                <p className="text-sm font-medium text-gray-600">Total Returns Expected</p>
+                <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalInvestmentReturns)}</p>
               </div>
               <TrendingUp className="h-8 w-8 text-primary" />
             </div>
@@ -226,22 +267,52 @@ const InvestmentManagement = () => {
           </CardContent>
         </Card>
 
-        <Card className="card-investments">
+        <Card className="card-investments border-red-200">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Pending Approvals</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {investments.reduce((sum, inv) => 
-                    sum + inv.applications.filter(app => app.status === 'pending').length, 0
-                  )}
-                </p>
+                <p className="text-sm font-medium text-red-600">Defaulting Members</p>
+                <p className="text-2xl font-bold text-red-600">{defaultingMembers.length}</p>
               </div>
-              <Calendar className="h-8 w-8 text-primary" />
+              <AlertTriangle className="h-8 w-8 text-red-600" />
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Defaulting Members Alert */}
+      {defaultingMembers.length > 0 && (
+        <Card className="border-red-200 bg-red-50 mb-6">
+          <CardHeader>
+            <CardTitle className="text-red-700 flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5" />
+              Defaulting Members Alert
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {defaultingMembers.map((defaulter, index) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-white rounded-lg border border-red-200">
+                  <div>
+                    <p className="font-medium text-red-900">{defaulter.memberName}</p>
+                    <p className="text-sm text-red-700">
+                      {defaulter.productName} - {formatCurrency(defaulter.remainingAmount)} overdue
+                    </p>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="border-red-300 text-red-700 hover:bg-red-100"
+                    onClick={() => handleGiveGracePeriod(defaulter.investmentId, defaulter.memberId)}
+                  >
+                    Give 3 Weeks Grace
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
