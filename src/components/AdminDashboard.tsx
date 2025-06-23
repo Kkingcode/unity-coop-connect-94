@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,7 +19,10 @@ import {
   BarChart3,
   Package,
   FileText,
-  Archive
+  Archive,
+  UserX,
+  Lightbulb,
+  Database
 } from 'lucide-react';
 import { Screen } from '@/pages/Index';
 import { useAppState } from '@/hooks/useAppState';
@@ -33,6 +37,12 @@ import AdminSettings from './admin/AdminSettings';
 import AGMManagement from './admin/AGMManagement';
 import AuditTrail from './admin/AuditTrail';
 import MemberDocuments from './admin/MemberDocuments';
+import AutomatedFines from './admin/AutomatedFines';
+import BroadcastMessaging from './admin/BroadcastMessaging';
+import ReportGenerator from './admin/ReportGenerator';
+import InactiveMemberTracker from './admin/InactiveMemberTracker';
+import SuggestionBox from './admin/SuggestionBox';
+import BackupRestore from './admin/BackupRestore';
 
 interface AdminDashboardProps {
   user: any;
@@ -40,7 +50,7 @@ interface AdminDashboardProps {
   onLogout: () => void;
 }
 
-type AdminScreen = 'dashboard' | 'members' | 'loans' | 'savings' | 'investments' | 'approvals' | 'messages' | 'reports' | 'settings' | 'agm' | 'audit' | 'documents';
+type AdminScreen = 'dashboard' | 'members' | 'loans' | 'savings' | 'investments' | 'approvals' | 'messages' | 'reports' | 'settings' | 'agm' | 'audit' | 'documents' | 'fines' | 'broadcast' | 'generator' | 'inactive' | 'suggestions' | 'backup';
 
 const AdminDashboard = ({ user, onNavigate, onLogout }: AdminDashboardProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -104,6 +114,12 @@ const AdminDashboard = ({ user, onNavigate, onLogout }: AdminDashboardProps) => 
     { icon: Users, label: 'AGM', screen: 'agm' as AdminScreen },
     { icon: FileText, label: 'Audit Trail', screen: 'audit' as AdminScreen },
     { icon: Archive, label: 'Documents', screen: 'documents' as AdminScreen },
+    { icon: AlertTriangle, label: 'Auto Fines', screen: 'fines' as AdminScreen },
+    { icon: MessageSquare, label: 'Broadcast', screen: 'broadcast' as AdminScreen },
+    { icon: FileText, label: 'Report Gen', screen: 'generator' as AdminScreen },
+    { icon: UserX, label: 'Inactive', screen: 'inactive' as AdminScreen },
+    { icon: Lightbulb, label: 'Suggestions', screen: 'suggestions' as AdminScreen },
+    { icon: Database, label: 'Backup', screen: 'backup' as AdminScreen },
     { icon: Settings, label: 'Settings', screen: 'settings' as AdminScreen },
   ];
 
@@ -134,6 +150,18 @@ const AdminDashboard = ({ user, onNavigate, onLogout }: AdminDashboardProps) => 
         return <AuditTrail />;
       case 'documents':
         return <MemberDocuments />;
+      case 'fines':
+        return <AutomatedFines />;
+      case 'broadcast':
+        return <BroadcastMessaging />;
+      case 'generator':
+        return <ReportGenerator />;
+      case 'inactive':
+        return <InactiveMemberTracker />;
+      case 'suggestions':
+        return <SuggestionBox />;
+      case 'backup':
+        return <BackupRestore />;
       case 'settings':
         return <AdminSettings />;
       default:
