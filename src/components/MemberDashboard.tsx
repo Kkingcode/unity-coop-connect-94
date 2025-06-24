@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Screen } from '@/pages/Index';
 import { useAppState } from '@/hooks/useAppState';
+import StarRating from './StarRating';
 
 interface MemberDashboardProps {
   user: any;
@@ -23,7 +24,7 @@ interface MemberDashboardProps {
 }
 
 const MemberDashboard = ({ user, onNavigate, onLogout }: MemberDashboardProps) => {
-  const { investments } = useAppState();
+  const { investments, canMemberApplyForLoan } = useAppState();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-NG', {
@@ -49,6 +50,8 @@ const MemberDashboard = ({ user, onNavigate, onLogout }: MemberDashboardProps) =
     return isOverdue;
   });
 
+  const eligibility = canMemberApplyForLoan(user.id);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-purple-50/30 p-4">
       <div className="max-w-6xl mx-auto">
@@ -56,13 +59,36 @@ const MemberDashboard = ({ user, onNavigate, onLogout }: MemberDashboardProps) =
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Welcome back, {user.name}!</h1>
-            <p className="text-gray-600">Member ID: {user.id}</p>
+            <div className="flex items-center gap-4 mt-2">
+              <p className="text-gray-600">Member ID: {user.id}</p>
+              {user.repaymentRating && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Repayment Rating:</span>
+                  <StarRating rating={user.repaymentRating} size="sm" />
+                </div>
+              )}
+            </div>
           </div>
           <Button variant="outline" onClick={onLogout} className="flex items-center gap-2">
             <LogOut className="h-4 w-4" />
             Sign Out
           </Button>
         </div>
+
+        {/* Loan Eligibility Alert */}
+        {!eligibility.canApply && (
+          <Card className="border-amber-200 bg-amber-50 mb-6">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 text-amber-700">
+                <AlertTriangle className="h-5 w-5" />
+                <div>
+                  <p className="font-medium">Loan Application Restricted</p>
+                  <p className="text-sm text-amber-600">{eligibility.reason}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Overdue Investment Alert */}
         {hasOverdueInvestments && (
@@ -117,7 +143,12 @@ const MemberDashboard = ({ user, onNavigate, onLogout }: MemberDashboardProps) =
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card className="glass-card hover:shadow-lg transition-all duration-200 cursor-pointer" onClick={() => onNavigate('loan-application')}>
+          <Card 
+            className={`glass-card hover:shadow-lg transition-all duration-200 ${
+              eligibility.canApply ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed'
+            }`} 
+            onClick={() => eligibility.canApply && onNavigate('loan-application')}
+          >
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
                 <div className="p-3 bg-blue-100 rounded-full">
@@ -125,7 +156,9 @@ const MemberDashboard = ({ user, onNavigate, onLogout }: MemberDashboardProps) =
                 </div>
                 <div>
                   <h3 className="font-semibold">Apply for Loan</h3>
-                  <p className="text-sm text-gray-600">Submit a new loan application</p>
+                  <p className="text-sm text-gray-600">
+                    {eligibility.canApply ? 'Submit a new loan application' : 'Currently restricted'}
+                  </p>
                 </div>
               </div>
             </CardContent>

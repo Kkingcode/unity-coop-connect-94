@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 
 export interface Member {
@@ -47,6 +46,15 @@ export interface Member {
     president?: string;
     secretary?: string;
   };
+  repaymentRating?: {
+    stars: number;
+    totalLoans: number;
+    onTimePayments: number;
+    earlyPayments: number;
+    latePayments: number;
+    missedPayments: number;
+    averageDaysLate: number;
+  };
 }
 
 export interface LoanApplication {
@@ -65,6 +73,15 @@ export interface LoanApplication {
   weeksRemaining?: number;
   nextPaymentDate?: string;
   fines?: number;
+  totalPaid?: number;
+  remainingAmount?: number;
+  paymentHistory?: Array<{
+    date: string;
+    amount: number;
+    daysEarly?: number;
+    daysLate?: number;
+    fine?: number;
+  }>;
 }
 
 export interface Investment {
@@ -159,9 +176,107 @@ export interface Feedback {
   message: string;
   status: 'pending' | 'reviewed' | 'resolved';
   timestamp: string;
+  category?: string;
+  priority?: 'high' | 'medium' | 'low';
+  title?: string;
+  date?: string;
+  response?: string;
 }
 
-// Mock data
+// Calculate repayment rating based on loan history
+const calculateRepaymentRating = (member: Member, loans: LoanApplication[]): Member['repaymentRating'] => {
+  const memberLoans = loans.filter(loan => 
+    loan.memberId === member.id && loan.status === 'approved'
+  );
+
+  if (memberLoans.length === 0) {
+    return {
+      stars: 5, // New members start with 5 stars
+      totalLoans: 0,
+      onTimePayments: 0,
+      earlyPayments: 0,
+      latePayments: 0,
+      missedPayments: 0,
+      averageDaysLate: 0
+    };
+  }
+
+  let onTimePayments = 0;
+  let earlyPayments = 0;
+  let latePayments = 0;
+  let missedPayments = 0;
+  let totalDaysLate = 0;
+  let totalPayments = 0;
+
+  memberLoans.forEach(loan => {
+    if (loan.paymentHistory) {
+      loan.paymentHistory.forEach(payment => {
+        totalPayments++;
+        if (payment.daysEarly && payment.daysEarly > 0) {
+          earlyPayments++;
+        } else if (payment.daysLate && payment.daysLate > 0) {
+          latePayments++;
+          totalDaysLate += payment.daysLate;
+        } else {
+          onTimePayments++;
+        }
+      });
+    }
+
+    // Check for missed payments (fines without corresponding payments)
+    if (loan.fines && loan.fines > 0) {
+      missedPayments += Math.floor(loan.fines / 1000); // Assuming 1000 fine per missed payment
+    }
+  });
+
+  const averageDaysLate = latePayments > 0 ? totalDaysLate / latePayments : 0;
+  
+  // Calculate star rating
+  let stars = 5;
+  
+  if (totalPayments === 0) return {
+    stars: 5,
+    totalLoans: memberLoans.length,
+    onTimePayments,
+    earlyPayments,
+    latePayments,
+    missedPayments,
+    averageDaysLate
+  };
+
+  const onTimePercentage = (onTimePayments + earlyPayments) / totalPayments;
+  const latePercentage = latePayments / totalPayments;
+  const missedPercentage = missedPayments / totalPayments;
+
+  // Rating algorithm
+  if (onTimePercentage >= 0.95 && earlyPayments > 0) {
+    stars = 5; // Excellent
+  } else if (onTimePercentage >= 0.9) {
+    stars = 4; // Very Good
+  } else if (onTimePercentage >= 0.8) {
+    stars = 3; // Good
+  } else if (onTimePercentage >= 0.6) {
+    stars = 2; // Fair
+  } else {
+    stars = 1; // Poor
+  }
+
+  // Penalties
+  if (missedPercentage > 0.1) stars = Math.max(1, stars - 1);
+  if (averageDaysLate > 7) stars = Math.max(1, stars - 0.5);
+
+  return {
+    stars: Math.round(stars),
+    totalLoans: memberLoans.length,
+    onTimePayments,
+    earlyPayments,
+    latePayments,
+    missedPayments,
+    averageDaysLate: Math.round(averageDaysLate)
+  };
+};
+
+// Mock data with payment history
 const mockMembers: Member[] = [
   {
     id: 'MEM001',
@@ -182,11 +297,11 @@ const mockMembers: Member[] = [
     balance: 125000,
     savings: 45000,
     investmentBalance: 0,
-    loanBalance: 25000,
+    loanBalance: 0, // John paid off his loan
     status: 'active',
     documents: [],
     guaranteedLoans: [],
-    guarantorFor: [],
+    guarantorFor: [{ memberId: 'MEM002', memberName: 'Alice Johnson', loanAmount: 200000, remainingAmount: 180000 }],
     guarantors: [],
     fines: 0,
     lastPaymentDate: '2024-01-10',
@@ -201,9 +316,9 @@ const mockMembers: Member[] = [
   },
   {
     id: 'MEM002',
-    name: 'Jane Smith',
+    name: 'Alice Johnson',
     membershipId: 'ONCS002',
-    email: 'jane@example.com',
+    email: 'alice@example.com',
     phone: '+234-802-234-5678',
     address: '456 Abuja Avenue, Abuja',
     homeAddress: '456 Abuja Avenue, Abuja',
@@ -218,15 +333,18 @@ const mockMembers: Member[] = [
     balance: 89000,
     savings: 32000,
     investmentBalance: 0,
-    loanBalance: 0,
+    loanBalance: 180000, // Alice has an active loan
     status: 'active',
     documents: [],
     guaranteedLoans: [],
     guarantorFor: [],
-    guarantors: [],
+    guarantors: [
+      { name: 'John Doe', phone: '+234-801-234-5678', address: '123 Lagos Street, Lagos' },
+      { name: 'Michael Johnson', phone: '+234-803-234-5678', address: '789 Port Harcourt Road, Port Harcourt' }
+    ],
     fines: 0,
     lastPaymentDate: '2024-01-05',
-    lastPaymentAmount: 3000,
+    lastPaymentAmount: 20000,
     lastActivityDate: '2024-01-05',
     nextOfKin: {
       name: 'John Smith',
@@ -254,7 +372,7 @@ const mockMembers: Member[] = [
     balance: 156000,
     savings: 67000,
     investmentBalance: 0,
-    loanBalance: 15000,
+    loanBalance: 0,
     status: 'inactive',
     documents: [],
     guaranteedLoans: [],
@@ -270,6 +388,32 @@ const mockMembers: Member[] = [
       altPhone: '+234-804-333-3333',
       address: '456 Family Road, Port Harcourt'
     }
+  }
+];
+
+const mockLoanApplications: LoanApplication[] = [
+  {
+    id: 'LOAN001',
+    memberId: 'MEM002',
+    memberName: 'Alice Johnson',
+    amount: 200000,
+    purpose: 'Business expansion',
+    duration: 24,
+    guarantor1: { name: 'John Doe', phone: '+234-801-234-5678' },
+    guarantor2: { name: 'Michael Johnson', phone: '+234-803-234-5678' },
+    status: 'approved',
+    applicationDate: '2023-12-01',
+    monthlyPayment: 10000,
+    weeklyPayment: 2500,
+    weeksRemaining: 18,
+    nextPaymentDate: '2024-01-15',
+    fines: 0,
+    totalPaid: 20000,
+    remainingAmount: 180000,
+    paymentHistory: [
+      { date: '2023-12-15', amount: 10000, daysEarly: 1 },
+      { date: '2024-01-05', amount: 10000 }
+    ]
   }
 ];
 
@@ -314,8 +458,8 @@ const mockActivities: Activity[] = [
     description: 'Loan application approved',
     time: '4 hours ago',
     adminName: 'Admin User',
-    memberName: 'Jane Smith',
-    amount: '₦50,000'
+    memberName: 'Alice Johnson',
+    amount: '₦200,000'
   }
 ];
 
@@ -351,16 +495,24 @@ const mockAGMs: AGM[] = [
   }
 ];
 
+const mockFeedback: Feedback[] = [];
+
 export const useAppState = () => {
   const [members, setMembers] = useState<Member[]>(mockMembers);
   const [investments, setInvestments] = useState<Investment[]>(mockInvestments);
-  const [loanApplications, setLoanApplications] = useState<LoanApplication[]>([]);
+  const [loanApplications, setLoanApplications] = useState<LoanApplication[]>(mockLoanApplications);
   const [adminLogs, setAdminLogs] = useState<AdminLog[]>([]);
   const [activities, setActivities] = useState<Activity[]>(mockActivities);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [approvals, setApprovals] = useState<Approval[]>(mockApprovals);
   const [agms, setAGMs] = useState<AGM[]>(mockAGMs);
-  const [feedback, setFeedback] = useState<Feedback[]>([]);
+  const [feedback, setFeedback] = useState<Feedback[]>(mockFeedback);
+
+  // Update members with repayment ratings
+  const membersWithRatings = members.map(member => ({
+    ...member,
+    repaymentRating: calculateRepaymentRating(member, loanApplications)
+  }));
 
   // Stats calculation
   const stats = {
@@ -394,6 +546,30 @@ export const useAppState = () => {
     { date: '2024-01-06', amount: 70000, totalAmount: 70000, loanReturns: 30000, investmentReturns: 20000, savings: 20000 },
     { date: '2024-01-07', amount: 85000, totalAmount: 85000, loanReturns: 35000, investmentReturns: 25000, savings: 25000 }
   ];
+
+  // Check if member can apply for loan
+  const canMemberApplyForLoan = (memberId: string): { canApply: boolean; reason?: string } => {
+    const member = members.find(m => m.id === memberId);
+    if (!member) return { canApply: false, reason: 'Member not found' };
+
+    // Check if member has active loan
+    if (member.loanBalance > 0) {
+      return { canApply: false, reason: 'You have an active loan that must be repaid first' };
+    }
+
+    // Check if member is guaranteeing someone else's loan
+    if (member.guarantorFor && member.guarantorFor.length > 0) {
+      const activeGuarantees = member.guarantorFor.filter(g => g.remainingAmount > 0);
+      if (activeGuarantees.length > 0) {
+        return { 
+          canApply: false, 
+          reason: `You are currently guaranteeing ${activeGuarantees.length} active loan(s). Complete guarantor obligations first.` 
+        };
+      }
+    }
+
+    return { canApply: true };
+  };
 
   // Member management functions
   const addMember = (memberData: Omit<Member, 'id'>) => {
@@ -469,6 +645,11 @@ export const useAppState = () => {
 
   // Loan management functions
   const createLoanApplication = (loanData: Omit<LoanApplication, 'id'>) => {
+    const eligibility = canMemberApplyForLoan(loanData.memberId);
+    if (!eligibility.canApply) {
+      throw new Error(eligibility.reason);
+    }
+
     const newLoan = {
       ...loanData,
       id: `LOAN${String(loanApplications.length + 1).padStart(3, '0')}`
@@ -563,7 +744,6 @@ export const useAppState = () => {
   };
 
   const applyAutomatedFines = () => {
-    // Logic for applying automated fines
     console.log('Applying automated fines...');
   };
 
@@ -578,9 +758,15 @@ export const useAppState = () => {
     addAdminLog('ADMIN001', 'Admin User', 'Savings Allocation', `Allocated ₦${amount} to member: ${memberId}`);
   };
 
+  const updateFeedbackStatus = (feedbackId: string, status: 'pending' | 'reviewed' | 'resolved') => {
+    setFeedback(prev => prev.map(f => 
+      f.id === feedbackId ? { ...f, status } : f
+    ));
+  };
+
   return {
     // Data
-    members,
+    members: membersWithRatings,
     investments,
     loanApplications,
     loans: loanApplications, // Alias for compatibility
@@ -599,6 +785,7 @@ export const useAppState = () => {
     updateMemberBalance,
     suspendMember,
     activateMember,
+    canMemberApplyForLoan,
     
     // Investment functions
     createInvestment,
@@ -620,6 +807,7 @@ export const useAppState = () => {
     updateAGMRSVP,
     applyAutomatedFines,
     sendBroadcastMessage,
-    allocateSavings
+    allocateSavings,
+    updateFeedbackStatus
   };
 };

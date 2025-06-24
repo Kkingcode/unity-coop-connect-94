@@ -4,66 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CheckCircle, XCircle, Clock, Eye } from 'lucide-react';
-
-interface Loan {
-  id: number;
-  memberName: string;
-  memberId: string;
-  amount: number;
-  purpose: string;
-  applicationDate: string;
-  status: 'pending' | 'approved' | 'rejected' | 'repaid';
-  guarantors: string[];
-  weeklyPayment: number;
-  weeksRemaining: number;
-  fines: number;
-}
+import { CheckCircle, XCircle, Clock, Eye, Calendar } from 'lucide-react';
+import { useAppState } from '@/hooks/useAppState';
+import StarRating from '../StarRating';
 
 const LoansManagement = () => {
   const [activeTab, setActiveTab] = useState('pending');
-
-  const loans: Loan[] = [
-    {
-      id: 1,
-      memberName: 'John Doe',
-      memberId: 'MEM001',
-      amount: 150000,
-      purpose: 'Business expansion',
-      applicationDate: '2024-06-15',
-      status: 'pending',
-      guarantors: ['Alice Johnson', 'Bob Williams'],
-      weeklyPayment: 6250,
-      weeksRemaining: 24,
-      fines: 0
-    },
-    {
-      id: 2,
-      memberName: 'Alice Johnson',
-      memberId: 'MEM002',
-      amount: 200000,
-      purpose: 'Home improvement',
-      applicationDate: '2024-06-10',
-      status: 'approved',
-      guarantors: ['John Doe', 'Carol Davis'],
-      weeklyPayment: 8334,
-      weeksRemaining: 18,
-      fines: 0
-    },
-    {
-      id: 3,
-      memberName: 'Bob Williams',
-      memberId: 'MEM003',
-      amount: 75000,
-      purpose: 'Emergency medical',
-      applicationDate: '2024-06-08',
-      status: 'repaid',
-      guarantors: ['John Doe'],
-      weeklyPayment: 3125,
-      weeksRemaining: 0,
-      fines: 1500
-    }
-  ];
+  const { loanApplications, members, approveLoan } = useAppState();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-NG', {
@@ -92,9 +39,18 @@ const LoansManagement = () => {
     }
   };
 
-  const filteredLoans = loans.filter(loan => 
+  const getMemberRating = (memberId: string) => {
+    const member = members.find(m => m.id === memberId);
+    return member?.repaymentRating;
+  };
+
+  const filteredLoans = loanApplications.filter(loan => 
     activeTab === 'all' || loan.status === activeTab
   );
+
+  const handleApproveLoan = (loanId: string) => {
+    approveLoan(loanId);
+  };
 
   return (
     <div className="animate-slide-in-right">
@@ -114,60 +70,114 @@ const LoansManagement = () => {
 
         <div className="mt-6">
           <div className="grid gap-4">
-            {filteredLoans.map((loan) => (
-              <Card key={loan.id} className="glass-card hover:shadow-lg transition-all duration-200">
-                <CardContent className="p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-semibold text-lg">{loan.memberName}</h3>
-                        <Badge className={getStatusColor(loan.status)}>
-                          <div className="flex items-center gap-1">
-                            {getStatusIcon(loan.status)}
-                            {loan.status}
-                          </div>
-                        </Badge>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
-                        <div>
-                          <p><span className="font-medium">Amount:</span> {formatCurrency(loan.amount)}</p>
-                          <p><span className="font-medium">Purpose:</span> {loan.purpose}</p>
-                          <p><span className="font-medium">Applied:</span> {loan.applicationDate}</p>
-                          {loan.fines > 0 && (
-                            <p><span className="font-medium text-red-600">Fines:</span> {formatCurrency(loan.fines)}</p>
+            {filteredLoans.map((loan) => {
+              const memberRating = getMemberRating(loan.memberId);
+              const progressPercentage = loan.totalPaid && loan.amount 
+                ? Math.round((loan.totalPaid / loan.amount) * 100) 
+                : 0;
+
+              return (
+                <Card key={loan.id} className="glass-card hover:shadow-lg transition-all duration-200">
+                  <CardContent className="p-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="font-semibold text-lg">{loan.memberName}</h3>
+                          <Badge className={getStatusColor(loan.status)}>
+                            <div className="flex items-center gap-1">
+                              {getStatusIcon(loan.status)}
+                              {loan.status}
+                            </div>
+                          </Badge>
+                          {memberRating && (
+                            <StarRating rating={memberRating} size="sm" />
                           )}
                         </div>
-                        <div>
-                          <p><span className="font-medium">Weekly Payment:</span> {formatCurrency(loan.weeklyPayment)}</p>
-                          <p><span className="font-medium">Weeks Remaining:</span> {loan.weeksRemaining}</p>
-                          <p><span className="font-medium">Interest Rate:</span> 0%</p>
-                          <p><span className="font-medium">Guarantors:</span> {loan.guarantors.join(', ')}</p>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600 mb-4">
+                          <div>
+                            <p><span className="font-medium">Amount:</span> {formatCurrency(loan.amount)}</p>
+                            <p><span className="font-medium">Purpose:</span> {loan.purpose}</p>
+                            <p><span className="font-medium">Applied:</span> {loan.applicationDate}</p>
+                            {loan.fines && loan.fines > 0 && (
+                              <p><span className="font-medium text-red-600">Fines:</span> {formatCurrency(loan.fines)}</p>
+                            )}
+                          </div>
+                          <div>
+                            {loan.weeklyPayment && (
+                              <p><span className="font-medium">Weekly Payment:</span> {formatCurrency(loan.weeklyPayment)}</p>
+                            )}
+                            <p><span className="font-medium">Monthly Payment:</span> {formatCurrency(loan.monthlyPayment)}</p>
+                            {loan.weeksRemaining !== undefined && (
+                              <p><span className="font-medium">Weeks Remaining:</span> {loan.weeksRemaining}</p>
+                            )}
+                            {loan.nextPaymentDate && (
+                              <p><span className="font-medium">Next Payment:</span> {loan.nextPaymentDate}</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Loan Progress for Approved Loans */}
+                        {loan.status === 'approved' && loan.totalPaid !== undefined && (
+                          <div className="mb-4">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-sm font-medium">Repayment Progress</span>
+                              <span className="text-sm text-gray-600">
+                                {formatCurrency(loan.totalPaid || 0)} / {formatCurrency(loan.amount)} ({progressPercentage}%)
+                              </span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div 
+                                className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                                style={{ width: `${progressPercentage}%` }}
+                              ></div>
+                            </div>
+                            {loan.remainingAmount !== undefined && (
+                              <p className="text-sm text-gray-600 mt-1">
+                                Remaining: {formatCurrency(loan.remainingAmount)}
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="text-sm text-gray-600">
+                          <p><span className="font-medium">Guarantors:</span> {loan.guarantor1?.name}{loan.guarantor2 ? `, ${loan.guarantor2.name}` : ''}</p>
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="flex gap-2 justify-end">
-                    <Button variant="outline" size="sm">
-                      <Eye className="h-4 w-4 mr-2" />
-                      View Details
-                    </Button>
-                    {loan.status === 'pending' && (
-                      <>
-                        <Button size="sm" className="bg-green-600 hover:bg-green-700">
-                          <CheckCircle className="h-4 w-4 mr-2" />
-                          Approve
+                    <div className="flex gap-2 justify-end">
+                      <Button variant="outline" size="sm">
+                        <Eye className="h-4 w-4 mr-2" />
+                        View Details
+                      </Button>
+                      {loan.status === 'pending' && (
+                        <>
+                          <Button 
+                            size="sm" 
+                            className="bg-green-600 hover:bg-green-700"
+                            onClick={() => handleApproveLoan(loan.id)}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Approve
+                          </Button>
+                          <Button variant="outline" size="sm" className="text-red-600 border-red-300">
+                            <XCircle className="h-4 w-4 mr-2" />
+                            Reject
+                          </Button>
+                        </>
+                      )}
+                      {loan.status === 'approved' && loan.remainingAmount && loan.remainingAmount > 0 && (
+                        <Button size="sm" variant="outline" className="text-blue-600 border-blue-300">
+                          <Calendar className="h-4 w-4 mr-2" />
+                          Record Payment
                         </Button>
-                        <Button variant="outline" size="sm" className="text-red-600 border-red-300">
-                          <XCircle className="h-4 w-4 mr-2" />
-                          Reject
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </div>
       </Tabs>
