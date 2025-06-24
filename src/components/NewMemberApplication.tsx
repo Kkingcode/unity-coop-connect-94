@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowLeft, ArrowRight, Upload, Download, Check } from 'lucide-react';
 import SignatureCanvas from './SignatureCanvas';
 import { generateMembershipApplicationPDF } from '../utils/pdfGenerator';
+import { useAppState } from '@/hooks/useAppState';
 
 interface NewMemberApplicationProps {
   onBack: () => void;
@@ -51,6 +52,7 @@ interface FormData {
 
 const NewMemberApplication = ({ onBack }: NewMemberApplicationProps) => {
   const [currentStep, setCurrentStep] = useState(1);
+  const { addMember } = useAppState();
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
     sex: '',
@@ -130,29 +132,36 @@ const NewMemberApplication = ({ onBack }: NewMemberApplicationProps) => {
 
   const handleSubmit = () => {
     if (generatePDF()) {
-      // Save to backend/cloud storage
-      console.log('Application submitted successfully');
+      // Parse town/lga/state from the combined field
+      const townLgaParts = formData.townLgaState.split('/');
+      const town = townLgaParts[0]?.trim() || '';
+      const lga = townLgaParts[1]?.trim() || '';
+      const stateOfOrigin = townLgaParts[2]?.trim() || '';
       
-      // Add member to the system
+      // Create the member data object
       const memberData = {
         name: formData.fullName,
-        email: `${formData.fullName.toLowerCase().replace(/\s+/g, '.')}@temp.com`, // Temporary email
+        membershipId: '', // This will be auto-generated
+        email: `${formData.fullName.toLowerCase().replace(/\s+/g, '.')}@temp.com`,
         phone: formData.phoneNumber,
-        sex: formData.sex,
+        address: formData.homeAddress,
         homeAddress: formData.homeAddress,
-        town: formData.townLgaState.split('/')[0]?.trim() || '',
-        lga: formData.townLgaState.split('/')[1]?.trim() || '',
-        stateOfOrigin: formData.townLgaState.split('/')[2]?.trim() || '',
+        town: town,
+        lga: lga,
+        stateOfOrigin: stateOfOrigin,
         occupation: formData.occupation,
         jobAddress: formData.jobAddress,
         introducedBy: formData.introducedBy,
+        sex: formData.sex,
+        joinDate: new Date().toISOString().split('T')[0],
+        balance: 0,
+        savings: 0,
+        loanBalance: 0,
+        investmentBalance: 0,
         status: 'active' as const,
-        nextOfKin: {
-          name: formData.nokName,
-          address: formData.nokAddress,
-          phone: formData.nokPhone,
-          altPhone: formData.nokAltPhone
-        },
+        documents: [],
+        guaranteedLoans: [],
+        guarantorFor: [],
         guarantors: [
           {
             name: formData.guarantor1Name,
@@ -165,11 +174,24 @@ const NewMemberApplication = ({ onBack }: NewMemberApplicationProps) => {
             phone: formData.guarantor2Phone
           }
         ],
+        fines: 0,
+        lastPaymentDate: undefined,
+        lastPaymentAmount: undefined,
+        lastActivityDate: new Date().toISOString().split('T')[0],
+        nextOfKin: {
+          name: formData.nokName,
+          address: formData.nokAddress,
+          phone: formData.nokPhone,
+          altPhone: formData.nokAltPhone
+        },
         signatures: signatures
       };
       
-      // This would normally add the member to the system
-      console.log('New member data:', memberData);
+      // Add the member to the system
+      addMember(memberData);
+      
+      console.log('New member added successfully:', memberData);
+      alert('Member added successfully!');
       onBack();
     }
   };
