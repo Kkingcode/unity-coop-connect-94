@@ -11,7 +11,8 @@ import {
   CreditCard,
   Package,
   LogOut,
-  AlertTriangle
+  AlertTriangle,
+  Star
 } from 'lucide-react';
 import { Screen } from '@/pages/Index';
 import { useAppState } from '@/hooks/useAppState';

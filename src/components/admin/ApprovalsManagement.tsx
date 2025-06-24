@@ -53,11 +53,11 @@ const ApprovalsManagement = () => {
   const highPriorityCount = approvals.filter(a => a.priority === 'high' && a.status === 'pending').length;
 
   const handleApprove = (approvalId: number) => {
-    approveApplication(approvalId);
+    approveApplication(approvalId.toString());
   };
 
   const handleReject = (approvalId: number) => {
-    rejectApplication(approvalId);
+    rejectApplication(approvalId.toString());
   };
 
   return (
@@ -141,7 +141,7 @@ const ApprovalsManagement = () => {
                       <Button 
                         size="sm" 
                         className="bg-green-600 hover:bg-green-700"
-                        onClick={() => handleApprove(approval.id)}
+                        onClick={() => handleApprove(Number(approval.id))}
                       >
                         <CheckCircle className="h-4 w-4 mr-2" />
                         Approve
@@ -150,7 +150,7 @@ const ApprovalsManagement = () => {
                         variant="outline" 
                         size="sm" 
                         className="text-red-600 border-red-300"
-                        onClick={() => handleReject(approval.id)}
+                        onClick={() => handleReject(Number(approval.id))}
                       >
                         <XCircle className="h-4 w-4 mr-2" />
                         Reject

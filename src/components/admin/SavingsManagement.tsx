@@ -26,13 +26,8 @@ const SavingsManagement = () => {
   const handleAddSavings = (memberId: number, amount: number) => {
     const member = members.find(m => m.id === memberId);
     if (member) {
-      updateMemberBalance(memberId, amount);
-      addActivity({
-        type: 'savings',
-        description: `Savings deposit from ${member.name}`,
-        amount: formatCurrency(amount),
-        time: 'Just now'
-      });
+      updateMemberBalance(memberId, member.balance + amount, amount);
+      addActivity(`Savings deposit from ${member.name} - ${formatCurrency(amount)}`);
     }
   };
 

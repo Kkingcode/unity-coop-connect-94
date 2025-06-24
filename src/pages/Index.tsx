@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import SplashScreen from '@/components/SplashScreen';
 import LoginScreen from '@/components/LoginScreen';
@@ -132,7 +131,7 @@ const Index = () => {
       case 'splash':
         return <SplashScreen />;
       case 'login':
-        return <LoginScreen onLogin={handleLogin} loginError={loginError} />;
+        return <LoginScreen onLogin={handleLogin} />;
       case 'member-dashboard':
         return <MemberDashboard user={user} onNavigate={navigateToScreen} onLogout={handleLogout} />;
       case 'admin-dashboard':
@@ -146,7 +145,7 @@ const Index = () => {
       case 'member-investments':
         return <MemberInvestmentDashboard user={user} onNavigate={navigateToScreen} />;
       default:
-        return <LoginScreen onLogin={handleLogin} loginError={loginError} />;
+        return <LoginScreen onLogin={handleLogin} />;
     }
   };
 
