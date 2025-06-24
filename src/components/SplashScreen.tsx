@@ -1,9 +1,6 @@
-
 import { Building2, Users, Shield } from 'lucide-react';
-
 const SplashScreen = () => {
-  return (
-    <div className="min-h-screen flex items-center justify-center gradient-primary">
+  return <div className="min-h-screen flex items-center justify-center gradient-primary">
       <div className="text-center animate-fade-in-up">
         <div className="mb-8 relative">
           {/* Logo with animated rings */}
@@ -16,7 +13,7 @@ const SplashScreen = () => {
           </div>
           
           <h1 className="text-4xl font-bold text-white mb-2">ONCS</h1>
-          <p className="text-blue-100 text-lg">Omamuzo Nọr Cooperative Society</p>
+          <p className="text-blue-100 text-lg">Olorun Ni Nsogo Cooperative Society</p>
         </div>
         
         <div className="flex justify-center gap-6 mb-8">
@@ -34,8 +31,6 @@ const SplashScreen = () => {
           <div className="w-8 h-1 bg-white/60 rounded-full mx-auto"></div>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default SplashScreen;
