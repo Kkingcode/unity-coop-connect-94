@@ -17,38 +17,48 @@ const Index = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>('splash');
   const [userRole, setUserRole] = useState<UserRole>(null);
   const [user, setUser] = useState<any>(null);
+  const [loginError, setLoginError] = useState<string>('');
   const { 
     updateActivity, 
     shouldTimeoutAdmin, 
     persistLogin, 
     getPersistedLogin, 
-    clearPersistedLogin 
+    clearPersistedLogin,
+    isSessionValid
   } = useSessionManager();
 
   useEffect(() => {
     // Check for persisted login first
     const persistedUser = getPersistedLogin();
     if (persistedUser) {
-      setUserRole(persistedUser.role);
-      setUser(persistedUser.data);
-      setCurrentScreen(persistedUser.role === 'member' ? 'member-dashboard' : 'admin-dashboard');
-    } else {
-      // Show splash screen for 3 seconds only if no persisted login
-      const timer = setTimeout(() => {
-        setCurrentScreen('login');
-      }, 3000);
-      return () => clearTimeout(timer);
+      // Validate session
+      if (isSessionValid(persistedUser.role)) {
+        setUserRole(persistedUser.role);
+        setUser(persistedUser.data);
+        setCurrentScreen(persistedUser.role === 'member' ? 'member-dashboard' : 'admin-dashboard');
+        return;
+      } else {
+        // Session expired, clear it
+        clearPersistedLogin();
+      }
     }
-  }, [getPersistedLogin]);
+    
+    // Show splash screen for 3 seconds only if no valid persisted login
+    const timer = setTimeout(() => {
+      setCurrentScreen('login');
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [getPersistedLogin, isSessionValid, clearPersistedLogin]);
 
-  // Check admin timeout
+  // Enhanced admin timeout check
   useEffect(() => {
     if (userRole === 'admin') {
       const interval = setInterval(() => {
         if (shouldTimeoutAdmin()) {
+          console.log('Admin session timed out');
           handleLogout();
         }
-      }, 60000); // Check every minute
+      }, 30000); // Check every 30 seconds for more responsive timeout
 
       return () => clearInterval(interval);
     }
@@ -57,30 +67,58 @@ const Index = () => {
   // Track user activity for admin timeout
   useEffect(() => {
     if (userRole === 'admin') {
-      const handleActivity = () => updateActivity();
+      const handleActivity = () => {
+        updateActivity();
+      };
       
-      window.addEventListener('mousedown', handleActivity);
-      window.addEventListener('keydown', handleActivity);
-      window.addEventListener('scroll', handleActivity);
+      // More comprehensive activity tracking
+      const events = ['mousedown', 'mousemove', 'keydown', 'scroll', 'click', 'touchstart'];
+      
+      events.forEach(event => {
+        window.addEventListener(event, handleActivity, { passive: true });
+      });
       
       return () => {
-        window.removeEventListener('mousedown', handleActivity);
-        window.removeEventListener('keydown', handleActivity);
-        window.removeEventListener('scroll', handleActivity);
+        events.forEach(event => {
+          window.removeEventListener(event, handleActivity);
+        });
       };
     }
   }, [userRole, updateActivity]);
 
-  const handleLogin = (role: UserRole, userData: any) => {
+  const handleLogin = (role: UserRole, userData: any, loginCredentials?: { username: string; password: string }) => {
+    // Clear any previous login errors
+    setLoginError('');
+    
+    // Simple credential validation (replace with real authentication)
+    if (loginCredentials) {
+      const validCredentials = {
+        admin: { username: 'admin', password: 'admin123' },
+        member: { username: 'member', password: 'member123' }
+      };
+      
+      const expectedCreds = validCredentials[role as keyof typeof validCredentials];
+      if (!expectedCreds || 
+          loginCredentials.username !== expectedCreds.username || 
+          loginCredentials.password !== expectedCreds.password) {
+        setLoginError('Incorrect login details. Please check and try again.');
+        return;
+      }
+    }
+    
     setUserRole(role);
     setUser(userData);
     persistLogin(role, userData);
     setCurrentScreen(role === 'member' ? 'member-dashboard' : 'admin-dashboard');
+    
+    console.log(`${role} logged in successfully:`, userData);
   };
 
   const handleLogout = () => {
+    console.log('User logged out');
     setUserRole(null);
     setUser(null);
+    setLoginError('');
     clearPersistedLogin();
     setCurrentScreen('login');
   };
@@ -94,7 +132,7 @@ const Index = () => {
       case 'splash':
         return <SplashScreen />;
       case 'login':
-        return <LoginScreen onLogin={handleLogin} />;
+        return <LoginScreen onLogin={handleLogin} loginError={loginError} />;
       case 'member-dashboard':
         return <MemberDashboard user={user} onNavigate={navigateToScreen} onLogout={handleLogout} />;
       case 'admin-dashboard':
@@ -108,7 +146,7 @@ const Index = () => {
       case 'member-investments':
         return <MemberInvestmentDashboard user={user} onNavigate={navigateToScreen} />;
       default:
-        return <LoginScreen onLogin={handleLogin} />;
+        return <LoginScreen onLogin={handleLogin} loginError={loginError} />;
     }
   };
 

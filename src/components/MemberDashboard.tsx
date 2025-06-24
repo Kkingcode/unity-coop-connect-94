@@ -59,12 +59,12 @@ const MemberDashboard = ({ user, onNavigate, onLogout }: MemberDashboardProps) =
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Welcome back, {user.name}!</h1>
-            <div className="flex items-center gap-4 mt-2">
-              <p className="text-gray-600">Member ID: {user.id}</p>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 mt-2">
+              <p className="text-gray-600">Member ID: {user.membershipId || user.id}</p>
               {user.repaymentRating && (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600">Repayment Rating:</span>
-                  <StarRating rating={user.repaymentRating} size="sm" />
+                <div className="flex items-center gap-2 p-2 bg-white rounded-lg border">
+                  <span className="text-sm font-medium text-gray-700">Your Credit Rating:</span>
+                  <StarRating rating={user.repaymentRating} size="md" showTooltip={true} />
                 </div>
               )}
             </div>
@@ -74,6 +74,34 @@ const MemberDashboard = ({ user, onNavigate, onLogout }: MemberDashboardProps) =
             Sign Out
           </Button>
         </div>
+
+        {/* Credit Rating Card - Prominent Display */}
+        {user.repaymentRating && (
+          <Card className="glass-card mb-6 border-l-4 border-l-blue-500">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-blue-100 rounded-full">
+                    <Star className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Your Loan Repayment Rating</h3>
+                    <p className="text-sm text-gray-600">Based on your payment history and consistency</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <StarRating rating={user.repaymentRating} size="lg" showTooltip={true} />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {user.repaymentRating.totalLoans > 0 ? 
+                      `Based on ${user.repaymentRating.totalLoans} loan(s)` : 
+                      'New member - Build your rating!'
+                    }
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Loan Eligibility Alert */}
         {!eligibility.canApply && (
@@ -135,7 +163,7 @@ const MemberDashboard = ({ user, onNavigate, onLogout }: MemberDashboardProps) =
               <CreditCard className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(user.loanBalance)}</div>
+              <div className="text-2xl font-bold">{formatCurrency(user.loanBalance || 0)}</div>
               <p className="text-xs text-muted-foreground">Outstanding loan</p>
             </CardContent>
           </Card>
@@ -145,26 +173,29 @@ const MemberDashboard = ({ user, onNavigate, onLogout }: MemberDashboardProps) =
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card 
             className={`glass-card hover:shadow-lg transition-all duration-200 ${
-              eligibility.canApply ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed'
+              eligibility.canApply ? 'cursor-pointer hover:border-blue-300' : 'opacity-50 cursor-not-allowed'
             }`} 
             onClick={() => eligibility.canApply && onNavigate('loan-application')}
           >
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
-                <div className="p-3 bg-blue-100 rounded-full">
-                  <CreditCard className="h-6 w-6 text-blue-600" />
+                <div className={`p-3 rounded-full ${eligibility.canApply ? 'bg-blue-100' : 'bg-gray-100'}`}>
+                  <CreditCard className={`h-6 w-6 ${eligibility.canApply ? 'text-blue-600' : 'text-gray-400'}`} />
                 </div>
                 <div>
                   <h3 className="font-semibold">Apply for Loan</h3>
                   <p className="text-sm text-gray-600">
                     {eligibility.canApply ? 'Submit a new loan application' : 'Currently restricted'}
                   </p>
+                  {!eligibility.canApply && (
+                    <p className="text-xs text-red-500 mt-1">Improve your rating to unlock</p>
+                  )}
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="glass-card hover:shadow-lg transition-all duration-200 cursor-pointer" onClick={() => onNavigate('member-investments')}>
+          <Card className="glass-card hover:shadow-lg transition-all duration-200 cursor-pointer hover:border-purple-300" onClick={() => onNavigate('member-investments')}>
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
                 <div className="p-3 bg-purple-100 rounded-full">
@@ -185,7 +216,7 @@ const MemberDashboard = ({ user, onNavigate, onLogout }: MemberDashboardProps) =
             </CardContent>
           </Card>
 
-          <Card className="glass-card hover:shadow-lg transition-all duration-200 cursor-pointer" onClick={() => onNavigate('transaction-history')}>
+          <Card className="glass-card hover:shadow-lg transition-all duration-200 cursor-pointer hover:border-green-300" onClick={() => onNavigate('transaction-history')}>
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
                 <div className="p-3 bg-green-100 rounded-full">
@@ -199,7 +230,7 @@ const MemberDashboard = ({ user, onNavigate, onLogout }: MemberDashboardProps) =
             </CardContent>
           </Card>
 
-          <Card className="glass-card hover:shadow-lg transition-all duration-200 cursor-pointer" onClick={() => onNavigate('notifications-center')}>
+          <Card className="glass-card hover:shadow-lg transition-all duration-200 cursor-pointer hover:border-yellow-300" onClick={() => onNavigate('notifications-center')}>
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
                 <div className="p-3 bg-yellow-100 rounded-full">

@@ -66,7 +66,7 @@ export interface LoanApplication {
   duration: number;
   guarantor1: any;
   guarantor2: any | null;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'repaid';
   applicationDate: string;
   monthlyPayment: number;
   weeklyPayment?: number;
@@ -183,15 +183,15 @@ export interface Feedback {
   response?: string;
 }
 
-// Calculate repayment rating based on loan history
+// Enhanced star rating calculation
 const calculateRepaymentRating = (member: Member, loans: LoanApplication[]): Member['repaymentRating'] => {
   const memberLoans = loans.filter(loan => 
-    loan.memberId === member.id && loan.status === 'approved'
+    loan.memberId === member.id && (loan.status === 'approved' || loan.status === 'repaid')
   );
 
   if (memberLoans.length === 0) {
     return {
-      stars: 5, // New members start with 5 stars
+      stars: 5, // New members start with 5 stars (benefit of doubt)
       totalLoans: 0,
       onTimePayments: 0,
       earlyPayments: 0,
@@ -217,25 +217,69 @@ const calculateRepaymentRating = (member: Member, loans: LoanApplication[]): Mem
         } else if (payment.daysLate && payment.daysLate > 0) {
           latePayments++;
           totalDaysLate += payment.daysLate;
+          if (payment.daysLate > 30) { // Consider 30+ days as missed
+            missedPayments++;
+          }
         } else {
           onTimePayments++;
         }
       });
     }
 
-    // Check for missed payments (fines without corresponding payments)
+    // Additional missed payments from outstanding fines
     if (loan.fines && loan.fines > 0) {
-      missedPayments += Math.floor(loan.fines / 1000); // Assuming 1000 fine per missed payment
+      const estimatedMissedPayments = Math.floor(loan.fines / 1000); // Assuming 1000 fine per missed payment
+      missedPayments += estimatedMissedPayments;
     }
   });
 
-  const averageDaysLate = latePayments > 0 ? totalDaysLate / latePayments : 0;
+  const averageDaysLate = latePayments > 0 ? Math.round(totalDaysLate / latePayments) : 0;
   
-  // Calculate star rating
+  // Enhanced star rating algorithm
   let stars = 5;
   
-  if (totalPayments === 0) return {
-    stars: 5,
+  if (totalPayments === 0) {
+    return {
+      stars: 5, // New member, give benefit of doubt
+      totalLoans: memberLoans.length,
+      onTimePayments,
+      earlyPayments,
+      latePayments,
+      missedPayments,
+      averageDaysLate
+    };
+  }
+
+  // Calculate performance ratios
+  const onTimePercentage = (onTimePayments + earlyPayments) / totalPayments;
+  const earlyPaymentBonus = earlyPayments / totalPayments;
+  const latePercentage = latePayments / totalPayments;
+  const missedPercentage = missedPayments / totalPayments;
+
+  // Base rating calculation
+  if (onTimePercentage >= 0.95 && earlyPaymentBonus > 0.2) {
+    stars = 5; // Excellent - 95%+ on time with 20%+ early payments
+  } else if (onTimePercentage >= 0.90) {
+    stars = 4; // Very Good - 90%+ on time
+  } else if (onTimePercentage >= 0.75) {
+    stars = 3; // Good - 75%+ on time
+  } else if (onTimePercentage >= 0.50) {
+    stars = 2; // Fair - 50%+ on time
+  } else {
+    stars = 1; // Poor - less than 50% on time
+  }
+
+  // Apply penalties
+  if (missedPercentage > 0.20) stars = Math.max(1, stars - 2); // Heavy penalty for high missed payments
+  else if (missedPercentage > 0.10) stars = Math.max(1, stars - 1); // Moderate penalty
+  
+  if (averageDaysLate > 14) stars = Math.max(1, stars - 1); // Penalty for consistently late payments
+  
+  // Apply bonuses for excellent behavior
+  if (earlyPaymentBonus > 0.30 && missedPercentage === 0) stars = Math.min(5, stars + 0.5);
+
+  return {
+    stars: Math.round(Math.max(1, Math.min(5, stars))), // Ensure stars are between 1-5
     totalLoans: memberLoans.length,
     onTimePayments,
     earlyPayments,
@@ -243,40 +287,9 @@ const calculateRepaymentRating = (member: Member, loans: LoanApplication[]): Mem
     missedPayments,
     averageDaysLate
   };
-
-  const onTimePercentage = (onTimePayments + earlyPayments) / totalPayments;
-  const latePercentage = latePayments / totalPayments;
-  const missedPercentage = missedPayments / totalPayments;
-
-  // Rating algorithm
-  if (onTimePercentage >= 0.95 && earlyPayments > 0) {
-    stars = 5; // Excellent
-  } else if (onTimePercentage >= 0.9) {
-    stars = 4; // Very Good
-  } else if (onTimePercentage >= 0.8) {
-    stars = 3; // Good
-  } else if (onTimePercentage >= 0.6) {
-    stars = 2; // Fair
-  } else {
-    stars = 1; // Poor
-  }
-
-  // Penalties
-  if (missedPercentage > 0.1) stars = Math.max(1, stars - 1);
-  if (averageDaysLate > 7) stars = Math.max(1, stars - 0.5);
-
-  return {
-    stars: Math.round(stars),
-    totalLoans: memberLoans.length,
-    onTimePayments,
-    earlyPayments,
-    latePayments,
-    missedPayments,
-    averageDaysLate: Math.round(averageDaysLate)
-  };
 };
 
-// Mock data with payment history
+// Enhanced mock data with realistic payment histories
 const mockMembers: Member[] = [
   {
     id: 'MEM001',
@@ -295,13 +308,19 @@ const mockMembers: Member[] = [
     sex: 'Male',
     joinDate: '2023-01-15',
     balance: 125000,
-    savings: 45000,
+    savings: 95000,
     investmentBalance: 0,
     loanBalance: 0, // John paid off his loan
     status: 'active',
     documents: [],
     guaranteedLoans: [],
-    guarantorFor: [{ memberId: 'MEM002', memberName: 'Alice Johnson', loanAmount: 200000, remainingAmount: 180000 }],
+    guarantorFor: [{ 
+      memberId: 'MEM002', 
+      memberName: 'Alice Johnson', 
+      loanAmount: 200000, 
+      remainingAmount: 150000,
+      isDefaulting: false 
+    }],
     guarantors: [],
     fines: 0,
     lastPaymentDate: '2024-01-10',
@@ -331,9 +350,9 @@ const mockMembers: Member[] = [
     sex: 'Female',
     joinDate: '2023-02-20',
     balance: 89000,
-    savings: 32000,
+    savings: 45000,
     investmentBalance: 0,
-    loanBalance: 180000, // Alice has an active loan
+    loanBalance: 150000, // Alice has an active loan
     status: 'active',
     documents: [],
     guaranteedLoans: [],
@@ -342,7 +361,7 @@ const mockMembers: Member[] = [
       { name: 'John Doe', phone: '+234-801-234-5678', address: '123 Lagos Street, Lagos' },
       { name: 'Michael Johnson', phone: '+234-803-234-5678', address: '789 Port Harcourt Road, Port Harcourt' }
     ],
-    fines: 0,
+    fines: 2000, // Some fines for late payments
     lastPaymentDate: '2024-01-05',
     lastPaymentAmount: 20000,
     lastActivityDate: '2024-01-05',
@@ -370,18 +389,18 @@ const mockMembers: Member[] = [
     sex: 'Male',
     joinDate: '2023-03-10',
     balance: 156000,
-    savings: 67000,
+    savings: 85000,
     investmentBalance: 0,
     loanBalance: 0,
-    status: 'inactive',
+    status: 'active', // Changed from inactive to active
     documents: [],
     guaranteedLoans: [],
     guarantorFor: [],
     guarantors: [],
     fines: 0,
-    lastPaymentDate: '2023-12-20',
+    lastPaymentDate: '2024-01-15',
     lastPaymentAmount: 2000,
-    lastActivityDate: '2023-12-20',
+    lastActivityDate: '2024-01-15',
     nextOfKin: {
       name: 'Sarah Johnson',
       phone: '+234-803-333-3333',
@@ -405,14 +424,44 @@ const mockLoanApplications: LoanApplication[] = [
     applicationDate: '2023-12-01',
     monthlyPayment: 10000,
     weeklyPayment: 2500,
-    weeksRemaining: 18,
-    nextPaymentDate: '2024-01-15',
-    fines: 0,
-    totalPaid: 20000,
-    remainingAmount: 180000,
+    weeksRemaining: 15,
+    nextPaymentDate: '2024-01-22',
+    fines: 2000,
+    totalPaid: 50000,
+    remainingAmount: 150000,
     paymentHistory: [
       { date: '2023-12-15', amount: 10000, daysEarly: 1 },
-      { date: '2024-01-05', amount: 10000 }
+      { date: '2024-01-05', amount: 10000 },
+      { date: '2024-01-12', amount: 10000, daysLate: 3, fine: 500 },
+      { date: '2024-01-20', amount: 20000, daysEarly: 2 }
+    ]
+  },
+  {
+    id: 'LOAN002',
+    memberId: 'MEM001',
+    memberName: 'John Doe',
+    amount: 150000,
+    purpose: 'Home renovation',
+    duration: 18,
+    guarantor1: { name: 'Michael Johnson', phone: '+234-803-234-5678' },
+    guarantor2: null,
+    status: 'repaid',
+    applicationDate: '2023-06-01',
+    monthlyPayment: 10000,
+    weeklyPayment: 2500,
+    weeksRemaining: 0,
+    nextPaymentDate: null,
+    fines: 0,
+    totalPaid: 150000,
+    remainingAmount: 0,
+    paymentHistory: [
+      { date: '2023-06-15', amount: 10000 },
+      { date: '2023-07-10', amount: 10000, daysEarly: 5 },
+      { date: '2023-08-12', amount: 15000, daysEarly: 3 },
+      { date: '2023-09-14', amount: 15000 },
+      { date: '2023-10-12', amount: 20000, daysEarly: 3 },
+      { date: '2023-11-15', amount: 25000, daysEarly: 1 },
+      { date: '2023-12-10', amount: 55000, daysEarly: 5 } // Early full payment
     ]
   }
 ];
@@ -467,13 +516,13 @@ const mockApprovals: Approval[] = [
   {
     id: 'APP001',
     type: 'loan',
-    applicantId: 'MEM001',
-    applicantName: 'John Doe',
-    amount: 50000,
+    applicantId: 'MEM003',
+    applicantName: 'Michael Johnson',
+    amount: 75000,
     status: 'pending',
     applicationDate: '2024-01-15',
-    priority: 'high',
-    details: 'Emergency loan for medical expenses'
+    priority: 'medium',
+    details: 'Small business loan for equipment purchase'
   }
 ];
 
@@ -497,13 +546,25 @@ const mockAGMs: AGM[] = [
 
 const mockFeedback: Feedback[] = [];
 
+const mockNotifications: Notification[] = [
+  {
+    id: 1,
+    memberId: 'MEM003',
+    type: 'guarantor',
+    title: 'Guarantor Request from Alice Johnson',
+    message: 'Alice Johnson wants you to be a guarantor for a ₦75,000 loan. Please review her loan history and decide.',
+    actionRequired: true,
+    timestamp: '2024-01-20T10:00:00Z'
+  }
+];
+
 export const useAppState = () => {
   const [members, setMembers] = useState<Member[]>(mockMembers);
   const [investments, setInvestments] = useState<Investment[]>(mockInvestments);
   const [loanApplications, setLoanApplications] = useState<LoanApplication[]>(mockLoanApplications);
   const [adminLogs, setAdminLogs] = useState<AdminLog[]>([]);
   const [activities, setActivities] = useState<Activity[]>(mockActivities);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
   const [approvals, setApprovals] = useState<Approval[]>(mockApprovals);
   const [agms, setAGMs] = useState<AGM[]>(mockAGMs);
   const [feedback, setFeedback] = useState<Feedback[]>(mockFeedback);
@@ -514,7 +575,7 @@ export const useAppState = () => {
     repaymentRating: calculateRepaymentRating(member, loanApplications)
   }));
 
-  // Stats calculation
+  // Enhanced stats calculation
   const stats = {
     totalMembers: members.length,
     totalSavings: members.reduce((sum, member) => sum + member.savings, 0),
@@ -547,7 +608,7 @@ export const useAppState = () => {
     { date: '2024-01-07', amount: 85000, totalAmount: 85000, loanReturns: 35000, investmentReturns: 25000, savings: 25000 }
   ];
 
-  // Check if member can apply for loan
+  // Enhanced loan eligibility check
   const canMemberApplyForLoan = (memberId: string): { canApply: boolean; reason?: string } => {
     const member = members.find(m => m.id === memberId);
     if (!member) return { canApply: false, reason: 'Member not found' };
@@ -568,17 +629,25 @@ export const useAppState = () => {
       }
     }
 
+    // Check member status
+    if (member.status !== 'active') {
+      return { canApply: false, reason: 'Your account is not active. Please contact an administrator.' };
+    }
+
     return { canApply: true };
   };
 
   // Member management functions
-  const addMember = (memberData: Omit<Member, 'id'>) => {
+  const addMember = (memberData: Omit<Member, 'id' | 'membershipId'>) => {
+    const newMembershipId = `ONCS${String(members.length + 1).padStart(3, '0')}`;
     const newMember = {
       ...memberData,
-      id: `MEM${String(members.length + 1).padStart(3, '0')}`
+      id: `MEM${String(members.length + 1).padStart(3, '0')}`,
+      membershipId: newMembershipId
     };
     setMembers(prev => [...prev, newMember]);
-    addAdminLog('ADMIN001', 'Admin User', 'Member Added', `Added new member: ${newMember.name}`);
+    addAdminLog('ADMIN001', 'Admin User', 'Member Added', `Added new member: ${newMember.name} (${newMembershipId})`);
+    addActivity(`New member registered: ${newMember.name}`, 'registration', newMember.name);
   };
 
   const updateMember = (memberId: string, updates: Partial<Member>) => {
@@ -659,18 +728,112 @@ export const useAppState = () => {
   };
 
   const approveLoan = (loanId: string) => {
+    const loan = loanApplications.find(l => l.id === loanId);
+    if (!loan) return;
+
     setLoanApplications(prev => prev.map(loan => 
-      loan.id === loanId ? { ...loan, status: 'approved' as const } : loan
+      loan.id === loanId ? { 
+        ...loan, 
+        status: 'approved' as const,
+        totalPaid: 0,
+        remainingAmount: loan.amount,
+        weeksRemaining: Math.ceil(loan.duration),
+        nextPaymentDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      } : loan
     ));
     
-    const loan = loanApplications.find(l => l.id === loanId);
-    if (loan) {
-      updateMember(loan.memberId, { 
+    // Update member loan balance
+    setMembers(prev => prev.map(member => 
+      member.id === loan.memberId ? { 
+        ...member, 
         loanBalance: loan.amount,
-        balance: members.find(m => m.id === loan.memberId)?.balance + loan.amount || loan.amount
-      });
-      addAdminLog('ADMIN001', 'Admin User', 'Loan Approved', `Approved loan: ${loan.memberName} - ₦${loan.amount}`);
-    }
+        balance: member.balance + loan.amount
+      } : member
+    ));
+
+    addAdminLog('ADMIN001', 'Admin User', 'Loan Approved', `Approved loan: ${loan.memberName} - ₦${loan.amount}`);
+    addActivity(`Loan approved for ${loan.memberName}`, 'loan', loan.memberName, `₦${loan.amount}`);
+  };
+
+  // Record loan payment function
+  const recordLoanPayment = (loanId: string, amount: number, paymentDate: string) => {
+    const loan = loanApplications.find(l => l.id === loanId);
+    if (!loan) return;
+
+    const member = members.find(m => m.id === loan.memberId);
+    if (!member) return;
+
+    // Calculate if payment is early, on time, or late
+    const expectedDate = new Date(loan.nextPaymentDate || paymentDate);
+    const actualDate = new Date(paymentDate);
+    const daysDifference = Math.floor((actualDate.getTime() - expectedDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    const paymentRecord = {
+      date: paymentDate,
+      amount: amount,
+      daysEarly: daysDifference < 0 ? Math.abs(daysDifference) : undefined,
+      daysLate: daysDifference > 0 ? daysDifference : undefined,
+      fine: daysDifference > 0 ? Math.min(daysDifference * 100, 2000) : undefined // 100 per day, max 2000
+    };
+
+    // Update loan application
+    setLoanApplications(prev => prev.map(l => {
+      if (l.id === loanId) {
+        const newTotalPaid = (l.totalPaid || 0) + amount;
+        const newRemainingAmount = l.amount - newTotalPaid;
+        const isFullyPaid = newRemainingAmount <= 0;
+
+        return {
+          ...l,
+          totalPaid: newTotalPaid,
+          remainingAmount: Math.max(0, newRemainingAmount),
+          weeksRemaining: isFullyPaid ? 0 : Math.ceil(newRemainingAmount / (l.weeklyPayment || l.monthlyPayment / 4)),
+          nextPaymentDate: isFullyPaid ? null : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          status: isFullyPaid ? 'repaid' as const : l.status,
+          paymentHistory: [...(l.paymentHistory || []), paymentRecord],
+          fines: (l.fines || 0) + (paymentRecord.fine || 0)
+        };
+      }
+      return l;
+    }));
+
+    // Update member balance and loan balance
+    setMembers(prev => prev.map(m => {
+      if (m.id === loan.memberId) {
+        const newLoanBalance = Math.max(0, m.loanBalance - amount);
+        const isLoanFullyPaid = newLoanBalance === 0;
+
+        // If loan is fully paid, remove guarantor restrictions
+        let updatedMember = {
+          ...m,
+          loanBalance: newLoanBalance,
+          lastPaymentDate: paymentDate,
+          lastPaymentAmount: amount,
+          lastActivityDate: paymentDate,
+          fines: (m.fines || 0) + (paymentRecord.fine || 0)
+        };
+
+        // If loan is fully paid, update guarantors
+        if (isLoanFullyPaid && m.guarantors) {
+          // Remove this member from guarantors' guarantorFor lists
+          setMembers(prevMembers => prevMembers.map(guarantor => {
+            if (m.guarantors?.some(g => g.name === guarantor.name)) {
+              return {
+                ...guarantor,
+                guarantorFor: guarantor.guarantorFor?.filter(gf => gf.memberId !== m.id) || []
+              };
+            }
+            return guarantor;
+          }));
+        }
+
+        return updatedMember;
+      }
+      return m;
+    }));
+
+    addAdminLog('ADMIN001', 'Admin User', 'Loan Payment', `Payment recorded: ${member.name} - ₦${amount}`);
+    addActivity(`Loan payment received from ${member.name}`, 'payment', member.name, `₦${amount}`);
   };
 
   // Notification functions
@@ -753,7 +916,7 @@ export const useAppState = () => {
 
   const allocateSavings = (memberId: string, amount: number) => {
     updateMember(memberId, { 
-      savings: members.find(m => m.id === memberId)?.savings + amount || amount 
+      savings: (members.find(m => m.id === memberId)?.savings || 0) + amount 
     });
     addAdminLog('ADMIN001', 'Admin User', 'Savings Allocation', `Allocated ₦${amount} to member: ${memberId}`);
   };
@@ -794,6 +957,7 @@ export const useAppState = () => {
     // Loan functions
     createLoanApplication,
     approveLoan,
+    recordLoanPayment,
     
     // Notification functions
     respondToGuarantorRequest,

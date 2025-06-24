@@ -49,25 +49,61 @@ export const useSessionManager = () => {
     return timeSinceActivity > timeoutMs;
   }, [lastActivity, sessionSettings.adminTimeoutMinutes]);
 
-  // Persist user login state
+  // Enhanced persist login function
   const persistLogin = useCallback((userRole: string, userData: any) => {
+    // Always persist member login if setting is enabled
     if (userRole === 'member' && sessionSettings.memberPersistentLogin) {
-      localStorage.setItem('persistedUser', JSON.stringify({ role: userRole, data: userData }));
+      localStorage.setItem('persistedUser', JSON.stringify({ 
+        role: userRole, 
+        data: userData,
+        timestamp: Date.now()
+      }));
     }
+    // Don't persist admin login, but update activity
     updateActivity();
   }, [sessionSettings.memberPersistentLogin, updateActivity]);
 
-  // Get persisted login
+  // Enhanced get persisted login
   const getPersistedLogin = useCallback(() => {
     const persisted = localStorage.getItem('persistedUser');
-    return persisted ? JSON.parse(persisted) : null;
-  }, []);
+    if (!persisted) return null;
+    
+    try {
+      const parsed = JSON.parse(persisted);
+      
+      // For members, check if persistent login is enabled
+      if (parsed.role === 'member' && sessionSettings.memberPersistentLogin) {
+        return parsed;
+      }
+      
+      // For admins, don't allow persistent login
+      if (parsed.role === 'admin') {
+        localStorage.removeItem('persistedUser');
+        return null;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error parsing persisted user:', error);
+      localStorage.removeItem('persistedUser');
+      return null;
+    }
+  }, [sessionSettings.memberPersistentLogin]);
 
   // Clear persisted login
   const clearPersistedLogin = useCallback(() => {
     localStorage.removeItem('persistedUser');
     localStorage.removeItem('lastActivity');
   }, []);
+
+  // Check if current session is valid
+  const isSessionValid = useCallback((userRole: string) => {
+    if (userRole === 'admin') {
+      return !shouldTimeoutAdmin();
+    }
+    // Members don't timeout unless they manually log out
+    return true;
+  }, [shouldTimeoutAdmin]);
 
   return {
     sessionSettings,
@@ -76,6 +112,7 @@ export const useSessionManager = () => {
     shouldTimeoutAdmin,
     persistLogin,
     getPersistedLogin,
-    clearPersistedLogin
+    clearPersistedLogin,
+    isSessionValid
   };
 };
