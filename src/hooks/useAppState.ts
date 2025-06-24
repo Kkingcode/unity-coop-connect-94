@@ -15,6 +15,8 @@ export interface Member {
   status: 'active' | 'inactive' | 'suspended';
   documents: string[];
   guaranteedLoans: any[];
+  fines: number;
+  guarantorFor?: any[];
 }
 
 export interface LoanApplication {
@@ -62,6 +64,59 @@ export interface AdminLog {
   action: string;
   details: string;
   timestamp: string;
+  targetMember?: string;
+  amount?: number;
+}
+
+export interface Activity {
+  id: string;
+  description: string;
+  time: string;
+  adminName?: string;
+  memberName?: string;
+  amount?: string;
+}
+
+export interface Notification {
+  id: number;
+  memberId: string;
+  type: 'guarantor' | 'investment' | 'loan' | 'general';
+  title: string;
+  message: string;
+  actionRequired: boolean;
+  timestamp: string;
+}
+
+export interface Approval {
+  id: string;
+  type: 'loan' | 'investment' | 'member';
+  applicantId: string;
+  applicantName: string;
+  amount?: number;
+  status: 'pending' | 'approved' | 'rejected';
+  applicationDate: string;
+}
+
+export interface AGM {
+  id: string;
+  title: string;
+  date: string;
+  time: string;
+  venue: string;
+  agenda: string[];
+  attendees: string[];
+  status: 'scheduled' | 'completed' | 'cancelled';
+}
+
+export interface Feedback {
+  id: string;
+  memberId: string;
+  memberName: string;
+  type: 'suggestion' | 'complaint' | 'compliment';
+  subject: string;
+  message: string;
+  status: 'pending' | 'reviewed' | 'resolved';
+  timestamp: string;
 }
 
 // Mock data
@@ -79,7 +134,8 @@ const mockMembers: Member[] = [
     loanBalance: 25000,
     status: 'active',
     documents: [],
-    guaranteedLoans: []
+    guaranteedLoans: [],
+    fines: 0
   },
   {
     id: 'MEM002',
@@ -94,7 +150,8 @@ const mockMembers: Member[] = [
     loanBalance: 0,
     status: 'active',
     documents: [],
-    guaranteedLoans: []
+    guaranteedLoans: [],
+    fines: 0
   },
   {
     id: 'MEM003',
@@ -109,7 +166,8 @@ const mockMembers: Member[] = [
     loanBalance: 15000,
     status: 'inactive',
     documents: [],
-    guaranteedLoans: []
+    guaranteedLoans: [],
+    fines: 0
   }
 ];
 
@@ -139,11 +197,34 @@ const mockInvestments: Investment[] = [
   }
 ];
 
+const mockActivities: Activity[] = [
+  {
+    id: 'ACT001',
+    description: 'New member registration',
+    time: '2 hours ago',
+    adminName: 'Admin User',
+    memberName: 'John Doe'
+  },
+  {
+    id: 'ACT002',
+    description: 'Loan application approved',
+    time: '4 hours ago',
+    adminName: 'Admin User',
+    memberName: 'Jane Smith',
+    amount: '₦50,000'
+  }
+];
+
 export const useAppState = () => {
   const [members, setMembers] = useState<Member[]>(mockMembers);
   const [investments, setInvestments] = useState<Investment[]>(mockInvestments);
   const [loanApplications, setLoanApplications] = useState<LoanApplication[]>([]);
   const [adminLogs, setAdminLogs] = useState<AdminLog[]>([]);
+  const [activities, setActivities] = useState<Activity[]>(mockActivities);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [approvals, setApprovals] = useState<Approval[]>([]);
+  const [agms, setAGMs] = useState<AGM[]>([]);
+  const [feedback, setFeedback] = useState<Feedback[]>([]);
 
   // Stats calculation
   const stats = {
@@ -156,8 +237,15 @@ export const useAppState = () => {
       sum + inv.applications.reduce((appSum, app) => appSum + (app.status === 'approved' ? app.remainingAmount : 0), 0), 0),
     pendingApprovals: loanApplications.filter(loan => loan.status === 'pending').length + 
       investments.reduce((sum, inv) => sum + inv.applications.filter(app => app.status === 'pending').length, 0),
-    totalFines: 0,
-    dailyReturns: { date: new Date().toISOString().split('T')[0], amount: 0 },
+    totalFines: members.reduce((sum, member) => sum + (member.fines || 0), 0),
+    dailyReturns: { 
+      date: new Date().toISOString().split('T')[0], 
+      amount: 85000,
+      totalAmount: 85000,
+      loanReturns: 35000,
+      investmentReturns: 25000,
+      savings: 25000
+    },
     dormantMembers: members.filter(member => member.status === 'inactive').length
   };
 
@@ -257,7 +345,17 @@ export const useAppState = () => {
     }
   };
 
-  // Admin log function
+  // Notification functions
+  const respondToGuarantorRequest = (notificationId: number, response: 'accepted' | 'rejected', userId: string) => {
+    setNotifications(prev => prev.map(notification => 
+      notification.id === notificationId 
+        ? { ...notification, actionRequired: false }
+        : notification
+    ));
+    addAdminLog(userId, 'User', 'Guarantor Response', `Guarantor request ${response}`);
+  };
+
+  // Admin functions
   const addAdminLog = (adminId: string, adminName: string, action: string, details: string) => {
     const newLog: AdminLog = {
       id: `LOG${String(adminLogs.length + 1).padStart(3, '0')}`,
@@ -270,6 +368,44 @@ export const useAppState = () => {
     setAdminLogs(prev => [...prev, newLog]);
   };
 
+  // Additional functions for missing features
+  const approveApplication = (applicationId: string) => {
+    setApprovals(prev => prev.map(approval => 
+      approval.id === applicationId ? { ...approval, status: 'approved' as const } : approval
+    ));
+  };
+
+  const rejectApplication = (applicationId: string) => {
+    setApprovals(prev => prev.map(approval => 
+      approval.id === applicationId ? { ...approval, status: 'rejected' as const } : approval
+    ));
+  };
+
+  const createAGM = (agmData: Omit<AGM, 'id'>) => {
+    const newAGM = {
+      ...agmData,
+      id: `AGM${String(agms.length + 1).padStart(3, '0')}`
+    };
+    setAGMs(prev => [...prev, newAGM]);
+  };
+
+  const updateAGMRSVP = (agmId: string, memberId: string) => {
+    setAGMs(prev => prev.map(agm => 
+      agm.id === agmId 
+        ? { ...agm, attendees: [...agm.attendees, memberId] }
+        : agm
+    ));
+  };
+
+  const applyAutomatedFines = () => {
+    // Logic for applying automated fines
+    console.log('Applying automated fines...');
+  };
+
+  const sendBroadcastMessage = (memberIds: string[], message: string, subject: string) => {
+    console.log('Sending broadcast message to:', memberIds, subject, message);
+  };
+
   return {
     // Data
     members,
@@ -278,6 +414,12 @@ export const useAppState = () => {
     adminLogs,
     stats,
     dailyReturns,
+    activities,
+    notifications,
+    approvals,
+    agms,
+    feedback,
+    loans: loanApplications, // Alias for compatibility
     
     // Member functions
     addMember,
@@ -293,7 +435,16 @@ export const useAppState = () => {
     createLoanApplication,
     approveLoan,
     
+    // Notification functions
+    respondToGuarantorRequest,
+    
     // Admin functions
-    addAdminLog
+    addAdminLog,
+    approveApplication,
+    rejectApplication,
+    createAGM,
+    updateAGMRSVP,
+    applyAutomatedFines,
+    sendBroadcastMessage
   };
 };

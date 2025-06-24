@@ -84,7 +84,7 @@ const LoanApplication = ({ user, onNavigate }: LoanApplicationProps) => {
       duration: Number(loanData.duration),
       guarantor1: loanData.guarantor1,
       guarantor2: requiredGuarantors === 2 ? loanData.guarantor2 : null,
-      status: 'pending',
+      status: 'pending' as const,
       applicationDate: new Date().toISOString(),
       monthlyPayment: loanAmount / Number(loanData.duration)
     };
