@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -58,7 +57,7 @@ const SavingsAllocation = () => {
       savings: Number(amounts.savings) || 0
     };
 
-    allocateSavings(selectedMember.id, allocationData, 'ADMIN001', 'Admin User');
+    allocateSavings(selectedMember.id, allocationData);
     
     // Reset form
     setSelectedMember(null);

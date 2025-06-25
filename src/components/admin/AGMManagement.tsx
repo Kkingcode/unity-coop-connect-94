@@ -26,7 +26,10 @@ const AGMManagement = () => {
       venue: formData.venue,
       notice: formData.notice,
       agenda: formData.agenda.filter(item => item.trim() !== ''),
-      documents: []
+      documents: [],
+      status: 'scheduled' as const,
+      time: new Date(formData.date).toLocaleTimeString(),
+      attendees: []
     };
 
     createAGM(newAGM);
@@ -174,7 +177,7 @@ const AGMManagement = () => {
                     <span>{agm.venue}</span>
                   </div>
                 </div>
-                <Badge className={agm.status === 'upcoming' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}>
+                <Badge className={agm.status === 'scheduled' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}>
                   {agm.status}
                 </Badge>
               </div>

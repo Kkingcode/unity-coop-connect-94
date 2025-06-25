@@ -22,9 +22,8 @@ const SuggestionBox = () => {
   });
 
   const handleStatusUpdate = (feedbackId: number, newStatus: any, response?: string) => {
-    updateFeedbackStatus(feedbackId, newStatus, response);
-    addAdminLog('ADMIN001', 'Admin User', 'Feedback Update', 
-      `Updated feedback #${feedbackId} status to ${newStatus}`);
+    updateFeedbackStatus(feedbackId, newStatus);
+    addAdminLog(`Updated feedback #${feedbackId} status to ${newStatus}`);
     
     if (selectedFeedback === feedbackId) {
       setSelectedFeedback(null);
@@ -54,10 +53,9 @@ const SuggestionBox = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'new': return 'bg-green-100 text-green-800';
-      case 'seen': return 'bg-yellow-100 text-yellow-800';
-      case 'implemented': return 'bg-blue-100 text-blue-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
+      case 'pending': return 'bg-green-100 text-green-800';
+      case 'reviewed': return 'bg-yellow-100 text-yellow-800';
+      case 'resolved': return 'bg-blue-100 text-blue-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -73,10 +71,9 @@ const SuggestionBox = () => {
 
   const stats = {
     total: feedback.length,
-    new: feedback.filter(f => f.status === 'new').length,
-    seen: feedback.filter(f => f.status === 'seen').length,
-    implemented: feedback.filter(f => f.status === 'implemented').length,
-    rejected: feedback.filter(f => f.status === 'rejected').length
+    pending: feedback.filter(f => f.status === 'pending').length,
+    reviewed: feedback.filter(f => f.status === 'reviewed').length,
+    resolved: feedback.filter(f => f.status === 'resolved').length
   };
 
   return (
@@ -87,7 +84,7 @@ const SuggestionBox = () => {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Card className="glass-card">
           <CardContent className="p-4">
             <div className="text-center">
@@ -99,32 +96,24 @@ const SuggestionBox = () => {
         <Card className="glass-card">
           <CardContent className="p-4">
             <div className="text-center">
-              <p className="text-2xl font-bold text-green-600">{stats.new}</p>
-              <p className="text-sm text-gray-600">New</p>
+              <p className="text-2xl font-bold text-green-600">{stats.pending}</p>
+              <p className="text-sm text-gray-600">Pending</p>
             </div>
           </CardContent>
         </Card>
         <Card className="glass-card">
           <CardContent className="p-4">
             <div className="text-center">
-              <p className="text-2xl font-bold text-yellow-600">{stats.seen}</p>
-              <p className="text-sm text-gray-600">Seen</p>
+              <p className="text-2xl font-bold text-yellow-600">{stats.reviewed}</p>
+              <p className="text-sm text-gray-600">Reviewed</p>
             </div>
           </CardContent>
         </Card>
         <Card className="glass-card">
           <CardContent className="p-4">
             <div className="text-center">
-              <p className="text-2xl font-bold text-blue-600">{stats.implemented}</p>
-              <p className="text-sm text-gray-600">Implemented</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="glass-card">
-          <CardContent className="p-4">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-red-600">{stats.rejected}</p>
-              <p className="text-sm text-gray-600">Rejected</p>
+              <p className="text-2xl font-bold text-blue-600">{stats.resolved}</p>
+              <p className="text-sm text-gray-600">Resolved</p>
             </div>
           </CardContent>
         </Card>
@@ -162,10 +151,9 @@ const SuggestionBox = () => {
                 className="w-full px-3 py-2 border rounded-lg"
               >
                 <option value="all">All Status</option>
-                <option value="new">New</option>
-                <option value="seen">Seen</option>
-                <option value="implemented">Implemented</option>
-                <option value="rejected">Rejected</option>
+                <option value="pending">Pending</option>
+                <option value="reviewed">Reviewed</option>
+                <option value="resolved">Resolved</option>
               </select>
             </div>
           </div>
@@ -222,17 +210,17 @@ const SuggestionBox = () => {
                   )}
 
                   <div className="flex items-center gap-2">
-                    {item.status === 'new' && (
+                    {item.status === 'pending' && (
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleStatusUpdate(item.id, 'seen')}
+                        onClick={() => handleStatusUpdate(item.id, 'reviewed')}
                       >
-                        Mark as Seen
+                        Mark as Reviewed
                       </Button>
                     )}
                     
-                    {(item.status === 'seen' || item.status === 'new') && (
+                    {(item.status === 'reviewed' || item.status === 'pending') && (
                       <>
                         <Button
                           size="sm"
@@ -245,17 +233,10 @@ const SuggestionBox = () => {
                         <Button
                           size="sm"
                           className="bg-blue-600 hover:bg-blue-700"
-                          onClick={() => handleStatusUpdate(item.id, 'implemented')}
+                          onClick={() => handleStatusUpdate(item.id, 'resolved')}
                         >
                           <Star className="h-4 w-4 mr-1" />
-                          Implement
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleStatusUpdate(item.id, 'rejected')}
-                        >
-                          Reject
+                          Resolve
                         </Button>
                       </>
                     )}
@@ -273,7 +254,7 @@ const SuggestionBox = () => {
                       <div className="flex gap-2">
                         <Button
                           size="sm"
-                          onClick={() => handleStatusUpdate(item.id, 'seen', responseText)}
+                          onClick={() => handleStatusUpdate(item.id, 'reviewed', responseText)}
                           disabled={!responseText.trim()}
                           className="bg-green-600 hover:bg-green-700"
                         >

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -62,15 +61,14 @@ const BroadcastMessaging = () => {
 
     sendBroadcastMessage(messageData.title, messageData.message, targetMembers);
     
-    addAdminLog('ADMIN001', 'Admin User', 'Broadcast Message', 
-      `Sent "${messageData.title}" to ${targetMembers.length > 0 ? targetMembers.length : 'all'} members`);
+    addAdminLog(`Sent "${messageData.title}" to ${targetMembers.length > 0 ? targetMembers.length : 'all'} members`);
 
     // Reset form
     setMessageData({ title: '', message: '', targetMembers: [] });
     setSelectAll(false);
   };
 
-  const getStatusBadgeColor = (status: string) => {
+  function getStatusBadgeColor(status: string) {
     switch (status) {
       case 'active': return 'bg-green-100 text-green-800';
       case 'inactive': return 'bg-gray-100 text-gray-800';
@@ -78,7 +76,7 @@ const BroadcastMessaging = () => {
       case 'dormant': return 'bg-yellow-100 text-yellow-800';
       default: return 'bg-gray-100 text-gray-800';
     }
-  };
+  }
 
   return (
     <div className="animate-slide-in-right">

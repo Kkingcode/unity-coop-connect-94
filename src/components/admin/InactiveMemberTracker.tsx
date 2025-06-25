@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -70,18 +69,17 @@ const InactiveMemberTracker = () => {
     const message = reminderMessages[type as keyof typeof reminderMessages];
     sendBroadcastMessage(message.title, message.message, memberIds);
     
-    addAdminLog('ADMIN001', 'Admin User', 'Inactive Member Reminder', 
-      `Sent ${type} reminder to ${memberIds.length} members`);
+    addAdminLog(`Sent ${type} reminder to ${memberIds.length} members`);
   };
 
-  const formatCurrency = (amount: number) => {
+  function formatCurrency(amount: number) {
     return new Intl.NumberFormat('en-NG', {
       style: 'currency',
       currency: 'NGN',
     }).format(amount);
-  };
+  }
 
-  const getCategoryColor = (category: string) => {
+  function getCategoryColor(category: string) {
     switch (category) {
       case 'atRisk': return 'bg-yellow-100 text-yellow-800';
       case 'recentlyInactive': return 'bg-orange-100 text-orange-800';
@@ -89,7 +87,7 @@ const InactiveMemberTracker = () => {
       case 'dormant': return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
     }
-  };
+  }
 
   return (
     <div className="animate-slide-in-right">
