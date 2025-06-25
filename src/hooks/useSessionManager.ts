@@ -7,7 +7,7 @@ interface SessionSettings {
 }
 
 const DEFAULT_SETTINGS: SessionSettings = {
-  adminTimeoutMinutes: 10,
+  adminTimeoutMinutes: 60, // Changed from 10 to 60 minutes
   memberPersistentLogin: true
 };
 

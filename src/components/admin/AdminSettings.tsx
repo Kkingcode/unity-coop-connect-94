@@ -42,17 +42,17 @@ const AdminSettings = () => {
               </label>
               <Input
                 type="number"
-                min="1"
-                max="60"
+                min="10"
+                max="180"
                 value={tempSettings.adminTimeoutMinutes}
                 onChange={(e) => setTempSettings({
                   ...tempSettings,
-                  adminTimeoutMinutes: parseInt(e.target.value) || 10
+                  adminTimeoutMinutes: parseInt(e.target.value) || 60
                 })}
                 className="w-32"
               />
               <p className="text-xs text-gray-600 mt-1">
-                Admin will be automatically logged out after this period of inactivity
+                Admin will be automatically logged out after this period of inactivity (minimum 10 minutes)
               </p>
             </div>
 

@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -60,7 +61,6 @@ const BroadcastMessaging = () => {
       : [];
 
     sendBroadcastMessage(messageData.title, messageData.message, targetMembers);
-    
     addAdminLog(`Sent "${messageData.title}" to ${targetMembers.length > 0 ? targetMembers.length : 'all'} members`);
 
     // Reset form

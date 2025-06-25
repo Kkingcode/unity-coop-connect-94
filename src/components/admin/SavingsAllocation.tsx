@@ -1,7 +1,9 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, DollarSign, AlertTriangle } from 'lucide-react';
 import { useAppState } from '@/hooks/useAppState';
 
@@ -9,11 +11,8 @@ const SavingsAllocation = () => {
   const { members, allocateSavings } = useAppState();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMember, setSelectedMember] = useState<any>(null);
-  const [amounts, setAmounts] = useState({
-    loan: '',
-    investment: '',
-    savings: ''
-  });
+  const [allocationType, setAllocationType] = useState<'investment' | 'savings' | 'loan'>('savings');
+  const [amount, setAmount] = useState('');
   const [showConfirmation, setShowConfirmation] = useState(false);
 
   const filteredMembers = members.filter(member =>
@@ -33,17 +32,9 @@ const SavingsAllocation = () => {
     setSearchTerm(member.name);
   };
 
-  const handleAmountChange = (field: string, value: string) => {
-    setAmounts(prev => ({ ...prev, [field]: value }));
-  };
-
-  const getTotalAmount = () => {
-    return (Number(amounts.loan) || 0) + (Number(amounts.investment) || 0) + (Number(amounts.savings) || 0);
-  };
-
   const handleSubmit = () => {
-    if (!selectedMember || getTotalAmount() === 0) {
-      alert('Please select a member and enter at least one amount.');
+    if (!selectedMember || !amount || Number(amount) <= 0) {
+      alert('Please select a member and enter a valid amount.');
       return;
     }
 
@@ -52,9 +43,9 @@ const SavingsAllocation = () => {
 
   const confirmAllocation = () => {
     const allocationData = {
-      loan: Number(amounts.loan) || 0,
-      investment: Number(amounts.investment) || 0,
-      savings: Number(amounts.savings) || 0
+      loan: allocationType === 'loan' ? Number(amount) : 0,
+      investment: allocationType === 'investment' ? Number(amount) : 0,
+      savings: allocationType === 'savings' ? Number(amount) : 0
     };
 
     allocateSavings(selectedMember.id, allocationData);
@@ -62,7 +53,8 @@ const SavingsAllocation = () => {
     // Reset form
     setSelectedMember(null);
     setSearchTerm('');
-    setAmounts({ loan: '', investment: '', savings: '' });
+    setAmount('');
+    setAllocationType('savings');
     setShowConfirmation(false);
     
     alert('Payment allocation completed successfully!');
@@ -88,31 +80,20 @@ const SavingsAllocation = () => {
                   <span>{selectedMember.name} ({selectedMember.membershipId})</span>
                 </div>
 
-                {Number(amounts.loan) > 0 && (
-                  <div className="flex justify-between">
-                    <span>Loan Repayment:</span>
-                    <span className="font-medium text-blue-600">{formatCurrency(Number(amounts.loan))}</span>
-                  </div>
-                )}
+                <div className="flex justify-between">
+                  <span>Allocation Type:</span>
+                  <span className="font-medium capitalize text-blue-600">{allocationType}</span>
+                </div>
 
-                {Number(amounts.investment) > 0 && (
-                  <div className="flex justify-between">
-                    <span>Investment Repayment:</span>
-                    <span className="font-medium text-purple-600">{formatCurrency(Number(amounts.investment))}</span>
-                  </div>
-                )}
-
-                {Number(amounts.savings) > 0 && (
-                  <div className="flex justify-between">
-                    <span>Savings Deposit:</span>
-                    <span className="font-medium text-green-600">{formatCurrency(Number(amounts.savings))}</span>
-                  </div>
-                )}
+                <div className="flex justify-between">
+                  <span>Amount:</span>
+                  <span className="font-medium text-green-600">{formatCurrency(Number(amount))}</span>
+                </div>
 
                 <div className="border-t pt-2 mt-4">
                   <div className="flex justify-between font-bold text-lg">
                     <span>Total Amount:</span>
-                    <span>{formatCurrency(getTotalAmount())}</span>
+                    <span>{formatCurrency(Number(amount))}</span>
                   </div>
                 </div>
               </div>
@@ -143,7 +124,7 @@ const SavingsAllocation = () => {
     <div className="animate-slide-in-right">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Savings Allocation</h1>
-        <p className="text-gray-600">Allocate member payments to loan, investment, or savings</p>
+        <p className="text-gray-600">Allocate member payments to investment, savings, or loan</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -218,53 +199,44 @@ const SavingsAllocation = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Loan Repayment</label>
-              <Input
-                type="number"
-                placeholder="Enter amount for loan repayment"
-                value={amounts.loan}
-                onChange={(e) => handleAmountChange('loan', e.target.value)}
-                disabled={!selectedMember || selectedMember.loanBalance === 0}
-              />
-              {selectedMember && selectedMember.loanBalance === 0 && (
-                <p className="text-xs text-gray-500 mt-1">No active loan</p>
-              )}
+              <label className="block text-sm font-medium mb-2">Allocation Type</label>
+              <Select value={allocationType} onValueChange={(value: 'investment' | 'savings' | 'loan') => setAllocationType(value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select allocation type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="savings">Savings Deposit</SelectItem>
+                  <SelectItem value="investment">Investment Deposit</SelectItem>
+                  <SelectItem value="loan">Loan Repayment</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Investment Repayment</label>
+              <label className="block text-sm font-medium mb-2">Amount</label>
               <Input
                 type="number"
-                placeholder="Enter amount for investment repayment"
-                value={amounts.investment}
-                onChange={(e) => handleAmountChange('investment', e.target.value)}
-                disabled={!selectedMember || selectedMember.investmentBalance === 0}
-              />
-              {selectedMember && selectedMember.investmentBalance === 0 && (
-                <p className="text-xs text-gray-500 mt-1">No active investment</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">Savings Deposit</label>
-              <Input
-                type="number"
-                placeholder="Enter amount for savings"
-                value={amounts.savings}
-                onChange={(e) => handleAmountChange('savings', e.target.value)}
+                placeholder="Enter amount"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
                 disabled={!selectedMember}
               />
             </div>
 
-            {getTotalAmount() > 0 && (
+            {Number(amount) > 0 && (
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="font-semibold">Total Allocation: {formatCurrency(getTotalAmount())}</p>
+                <p className="font-semibold">
+                  {allocationType === 'savings' && 'Savings Deposit: '}
+                  {allocationType === 'investment' && 'Investment Deposit: '}
+                  {allocationType === 'loan' && 'Loan Repayment: '}
+                  {formatCurrency(Number(amount))}
+                </p>
               </div>
             )}
 
             <Button
               onClick={handleSubmit}
-              disabled={!selectedMember || getTotalAmount() === 0}
+              disabled={!selectedMember || !amount || Number(amount) <= 0}
               className="w-full bg-primary hover:bg-primary/90"
             >
               Proceed to Confirmation
