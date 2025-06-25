@@ -4,10 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, DollarSign, AlertTriangle } from 'lucide-react';
+import { Search, DollarSign, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { useAppState } from '@/hooks/useAppState';
 
-const SavingsAllocation = () => {
+interface SavingsAllocationProps {
+  memberId?: string;
+  onBack?: () => void;
+}
+
+const SavingsAllocation = ({ memberId, onBack }: SavingsAllocationProps) => {
   const { members, allocateSavings } = useAppState();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMember, setSelectedMember] = useState<any>(null);
@@ -42,13 +47,9 @@ const SavingsAllocation = () => {
   };
 
   const confirmAllocation = () => {
-    const allocationData = {
-      loan: allocationType === 'loan' ? Number(amount) : 0,
-      investment: allocationType === 'investment' ? Number(amount) : 0,
-      savings: allocationType === 'savings' ? Number(amount) : 0
-    };
+    const allocationAmount = Number(amount);
 
-    allocateSavings(selectedMember.id, allocationData);
+    allocateSavings(selectedMember.id, allocationAmount);
     
     // Reset form
     setSelectedMember(null);
@@ -65,10 +66,17 @@ const SavingsAllocation = () => {
       <div className="animate-slide-in-right">
         <Card className="glass-card max-w-2xl mx-auto">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-amber-800">
-              <AlertTriangle className="h-5 w-5" />
-              Confirm Payment Allocation
-            </CardTitle>
+            <div className="flex items-center gap-2">
+              {onBack && (
+                <Button variant="ghost" size="sm" onClick={onBack}>
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              )}
+              <CardTitle className="flex items-center gap-2 text-amber-800">
+                <AlertTriangle className="h-5 w-5" />
+                Confirm Payment Allocation
+              </CardTitle>
+            </div>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
@@ -123,8 +131,17 @@ const SavingsAllocation = () => {
   return (
     <div className="animate-slide-in-right">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Savings Allocation</h1>
-        <p className="text-gray-600">Allocate member payments to investment, savings, or loan</p>
+        <div className="flex items-center gap-2">
+          {onBack && (
+            <Button variant="ghost" size="sm" onClick={onBack}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          )}
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Savings Allocation</h1>
+            <p className="text-gray-600">Allocate member payments to investment, savings, or loan</p>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

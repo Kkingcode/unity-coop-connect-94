@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -69,7 +70,7 @@ const InactiveMemberTracker = () => {
     const message = reminderMessages[type as keyof typeof reminderMessages];
     sendBroadcastMessage(message.title, message.message, memberIds);
     
-    addAdminLog(`Sent ${type} reminder to ${memberIds.length} members`);
+    addAdminLog(`Sent ${type} reminder to ${memberIds.length} members`, 'members', 'reminder_sent', new Date().toISOString());
   };
 
   function formatCurrency(amount: number) {

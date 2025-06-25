@@ -14,7 +14,7 @@ const BroadcastMessaging = () => {
   const [messageData, setMessageData] = useState({
     title: '',
     message: '',
-    targetMembers: [] as number[]
+    targetMembers: [] as string[]
   });
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectAll, setSelectAll] = useState(false);
@@ -29,7 +29,7 @@ const BroadcastMessaging = () => {
     if (checked) {
       setMessageData({
         ...messageData,
-        targetMembers: filteredMembers.map(m => m.id)
+        targetMembers: filteredMembers.map(m => String(m.id))
       });
     } else {
       setMessageData({
@@ -40,15 +40,16 @@ const BroadcastMessaging = () => {
   };
 
   const handleMemberSelect = (memberId: number, checked: boolean) => {
+    const memberIdStr = String(memberId);
     if (checked) {
       setMessageData({
         ...messageData,
-        targetMembers: [...messageData.targetMembers, memberId]
+        targetMembers: [...messageData.targetMembers, memberIdStr]
       });
     } else {
       setMessageData({
         ...messageData,
-        targetMembers: messageData.targetMembers.filter(id => id !== memberId)
+        targetMembers: messageData.targetMembers.filter(id => id !== memberIdStr)
       });
     }
   };
@@ -56,12 +57,12 @@ const BroadcastMessaging = () => {
   const handleSendMessage = () => {
     if (!messageData.title || !messageData.message) return;
 
-    const targetMembers = messageData.targetMembers.length > 0 
-      ? messageData.targetMembers 
+    const targetMemberIds = messageData.targetMembers.length > 0 
+      ? messageData.targetMembers.map(id => Number(id))
       : [];
 
-    sendBroadcastMessage(messageData.title, messageData.message, targetMembers);
-    addAdminLog(`Sent "${messageData.title}" to ${targetMembers.length > 0 ? targetMembers.length : 'all'} members`);
+    sendBroadcastMessage(messageData.title, messageData.message, targetMemberIds);
+    addAdminLog(`Sent "${messageData.title}" to ${targetMemberIds.length > 0 ? targetMemberIds.length : 'all'} members`, 'messaging', 'broadcast_message', new Date().toISOString());
 
     // Reset form
     setMessageData({ title: '', message: '', targetMembers: [] });
@@ -179,7 +180,7 @@ const BroadcastMessaging = () => {
                 <div key={member.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
                   <div className="flex items-center space-x-3">
                     <Checkbox
-                      checked={messageData.targetMembers.includes(member.id)}
+                      checked={messageData.targetMembers.includes(String(member.id))}
                       onCheckedChange={(checked) => handleMemberSelect(member.id, checked as boolean)}
                     />
                     <div>

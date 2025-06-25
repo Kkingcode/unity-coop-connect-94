@@ -13,7 +13,7 @@ const SuggestionBox = () => {
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [responseText, setResponseText] = useState('');
-  const [selectedFeedback, setSelectedFeedback] = useState<number | null>(null);
+  const [selectedFeedback, setSelectedFeedback] = useState<string | null>(null);
 
   const filteredFeedback = feedback.filter(item => {
     const categoryMatch = filterCategory === 'all' || item.category === filterCategory;
@@ -21,9 +21,9 @@ const SuggestionBox = () => {
     return categoryMatch && statusMatch;
   });
 
-  const handleStatusUpdate = (feedbackId: number, newStatus: any, response?: string) => {
+  const handleStatusUpdate = (feedbackId: string, newStatus: any, response?: string) => {
     updateFeedbackStatus(feedbackId, newStatus);
-    addAdminLog(`Updated feedback #${feedbackId} status to ${newStatus}`);
+    addAdminLog(`Updated feedback #${feedbackId} status to ${newStatus}`, 'feedback', 'status_update', new Date().toISOString());
     
     if (selectedFeedback === feedbackId) {
       setSelectedFeedback(null);
@@ -172,7 +172,7 @@ const SuggestionBox = () => {
           <div className="space-y-4 max-h-96 overflow-y-auto">
             {filteredFeedback.map((item) => {
               const CategoryIcon = getCategoryIcon(item.category);
-              const isSelected = selectedFeedback === item.id;
+              const isSelected = selectedFeedback === String(item.id);
 
               return (
                 <div key={item.id} className="border rounded-lg p-4 bg-gray-50">
@@ -214,7 +214,7 @@ const SuggestionBox = () => {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleStatusUpdate(item.id, 'reviewed')}
+                        onClick={() => handleStatusUpdate(String(item.id), 'reviewed')}
                       >
                         Mark as Reviewed
                       </Button>
@@ -225,7 +225,7 @@ const SuggestionBox = () => {
                         <Button
                           size="sm"
                           className="bg-green-600 hover:bg-green-700"
-                          onClick={() => setSelectedFeedback(isSelected ? null : item.id)}
+                          onClick={() => setSelectedFeedback(isSelected ? null : String(item.id))}
                         >
                           <Reply className="h-4 w-4 mr-1" />
                           {isSelected ? 'Cancel' : 'Respond'}
@@ -233,7 +233,7 @@ const SuggestionBox = () => {
                         <Button
                           size="sm"
                           className="bg-blue-600 hover:bg-blue-700"
-                          onClick={() => handleStatusUpdate(item.id, 'resolved')}
+                          onClick={() => handleStatusUpdate(String(item.id), 'resolved')}
                         >
                           <Star className="h-4 w-4 mr-1" />
                           Resolve
@@ -254,7 +254,7 @@ const SuggestionBox = () => {
                       <div className="flex gap-2">
                         <Button
                           size="sm"
-                          onClick={() => handleStatusUpdate(item.id, 'reviewed', responseText)}
+                          onClick={() => handleStatusUpdate(String(item.id), 'reviewed', responseText)}
                           disabled={!responseText.trim()}
                           className="bg-green-600 hover:bg-green-700"
                         >
