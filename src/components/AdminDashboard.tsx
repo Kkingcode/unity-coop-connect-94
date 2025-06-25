@@ -21,7 +21,8 @@ import {
   Archive,
   UserX,
   Lightbulb,
-  Database
+  Database,
+  Shield
 } from 'lucide-react';
 import { Screen } from '@/pages/Index';
 import { useAppState } from '@/hooks/useAppState';
@@ -42,6 +43,7 @@ import ReportGenerator from './admin/ReportGenerator';
 import InactiveMemberTracker from './admin/InactiveMemberTracker';
 import SuggestionBox from './admin/SuggestionBox';
 import BackupRestore from './admin/BackupRestore';
+import SubAdminManagement from './admin/SubAdminManagement';
 
 interface AdminDashboardProps {
   user: any;
@@ -49,7 +51,7 @@ interface AdminDashboardProps {
   onLogout: () => void;
 }
 
-type AdminScreen = 'dashboard' | 'members' | 'loans' | 'savings' | 'investments' | 'approvals' | 'messages' | 'reports' | 'settings' | 'agm' | 'audit' | 'documents' | 'fines' | 'broadcast' | 'generator' | 'inactive' | 'suggestions' | 'backup';
+type AdminScreen = 'dashboard' | 'members' | 'loans' | 'savings' | 'investments' | 'approvals' | 'messages' | 'reports' | 'settings' | 'agm' | 'audit' | 'documents' | 'fines' | 'broadcast' | 'generator' | 'inactive' | 'suggestions' | 'backup' | 'sub-admins';
 
 const AdminDashboard = ({ user, onNavigate, onLogout }: AdminDashboardProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -119,6 +121,7 @@ const AdminDashboard = ({ user, onNavigate, onLogout }: AdminDashboardProps) => 
     { icon: UserX, label: 'Inactive', screen: 'inactive' as AdminScreen },
     { icon: Lightbulb, label: 'Suggestions', screen: 'suggestions' as AdminScreen },
     { icon: Database, label: 'Backup', screen: 'backup' as AdminScreen },
+    { icon: Shield, label: 'Sub-Admins', screen: 'sub-admins' as AdminScreen },
     { icon: Settings, label: 'Settings', screen: 'settings' as AdminScreen },
   ];
 
@@ -161,6 +164,8 @@ const AdminDashboard = ({ user, onNavigate, onLogout }: AdminDashboardProps) => 
         return <SuggestionBox />;
       case 'backup':
         return <BackupRestore />;
+      case 'sub-admins':
+        return <SubAdminManagement />;
       case 'settings':
         return <AdminSettings />;
       default:
