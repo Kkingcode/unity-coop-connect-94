@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -72,7 +71,7 @@ const InactiveMemberTracker = () => {
       `Sent ${type} reminder to ${memberIds.length} members`, 
       'members', 
       'reminder_sent', 
-      new Date().toISOString()
+      [new Date().toISOString()]
     );
   };
 

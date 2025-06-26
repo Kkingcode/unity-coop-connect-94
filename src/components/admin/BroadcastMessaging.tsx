@@ -1,4 +1,5 @@
 
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -66,7 +67,7 @@ const BroadcastMessaging = () => {
       `Sent "${messageData.title}" to ${targetMemberIds.length > 0 ? targetMemberIds.length : 'all'} members`, 
       'messaging', 
       'broadcast_message', 
-      new Date().toISOString()
+      [new Date().toISOString()]
     );
 
     // Reset form
@@ -258,3 +259,4 @@ const BroadcastMessaging = () => {
 };
 
 export default BroadcastMessaging;
+
