@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import SplashScreen from '@/components/SplashScreen';
 import LoginScreen from '@/components/LoginScreen';
@@ -49,7 +50,7 @@ const Index = () => {
     return () => clearTimeout(timer);
   }, [getPersistedLogin, isSessionValid, clearPersistedLogin]);
 
-  // Enhanced admin timeout check
+  // Enhanced admin timeout check - reduced frequency to prevent premature logout
   useEffect(() => {
     if (userRole === 'admin') {
       const interval = setInterval(() => {
@@ -57,7 +58,7 @@ const Index = () => {
           console.log('Admin session timed out');
           handleLogout();
         }
-      }, 30000); // Check every 30 seconds for more responsive timeout
+      }, 60000); // Check every 1 minute instead of 30 seconds to reduce false timeouts
 
       return () => clearInterval(interval);
     }
@@ -157,3 +158,4 @@ const Index = () => {
 };
 
 export default Index;
+

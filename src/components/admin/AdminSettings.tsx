@@ -1,4 +1,5 @@
 
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -42,17 +43,17 @@ const AdminSettings = () => {
               </label>
               <Input
                 type="number"
-                min="10"
-                max="180"
+                min="60"
+                max="480"
                 value={tempSettings.adminTimeoutMinutes}
                 onChange={(e) => setTempSettings({
                   ...tempSettings,
-                  adminTimeoutMinutes: parseInt(e.target.value) || 60
+                  adminTimeoutMinutes: parseInt(e.target.value) || 240
                 })}
                 className="w-32"
               />
               <p className="text-xs text-gray-600 mt-1">
-                Admin will be automatically logged out after this period of inactivity (minimum 10 minutes)
+                Admin will be automatically logged out after this period of inactivity (minimum 60 minutes, default 240 minutes)
               </p>
             </div>
 
@@ -140,3 +141,4 @@ const AdminSettings = () => {
 };
 
 export default AdminSettings;
+

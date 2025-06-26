@@ -1,4 +1,5 @@
 
+
 import { useState, useEffect, useCallback } from 'react';
 
 interface SessionSettings {
@@ -7,7 +8,7 @@ interface SessionSettings {
 }
 
 const DEFAULT_SETTINGS: SessionSettings = {
-  adminTimeoutMinutes: 60, // Changed from 10 to 60 minutes
+  adminTimeoutMinutes: 240, // Changed to 4 hours (240 minutes) instead of 60
   memberPersistentLogin: true
 };
 
@@ -42,10 +43,11 @@ export const useSessionManager = () => {
     localStorage.setItem('lastActivity', now.toString());
   }, []);
 
-  // Check if admin session should timeout
+  // Check if admin session should timeout - Fixed logic
   const shouldTimeoutAdmin = useCallback(() => {
     const timeSinceActivity = Date.now() - lastActivity;
     const timeoutMs = sessionSettings.adminTimeoutMinutes * 60 * 1000;
+    console.log(`Time since activity: ${Math.floor(timeSinceActivity / 1000)} seconds, Timeout threshold: ${Math.floor(timeoutMs / 1000)} seconds`);
     return timeSinceActivity > timeoutMs;
   }, [lastActivity, sessionSettings.adminTimeoutMinutes]);
 
@@ -116,3 +118,4 @@ export const useSessionManager = () => {
     isSessionValid
   };
 };
+

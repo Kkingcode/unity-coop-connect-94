@@ -71,7 +71,7 @@ const InactiveMemberTracker = () => {
       `Sent ${type} reminder to ${memberIds.length} members`, 
       'members', 
       'reminder_sent', 
-      [new Date().toISOString()]
+      new Date().toISOString()
     );
   };
 
