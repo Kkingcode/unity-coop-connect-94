@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,7 +11,6 @@ const InactiveMemberTracker = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
 
-  // Calculate inactivity periods
   const getInactivityPeriod = (member: any) => {
     const lastActivity = new Date(member.lastActivityDate || member.joinDate);
     const today = new Date();
@@ -21,7 +19,6 @@ const InactiveMemberTracker = () => {
     return diffDays;
   };
 
-  // Categorize members by inactivity
   const categorizeMembers = () => {
     const categories = {
       dormant: members.filter(m => m.status === 'dormant'),
@@ -97,7 +94,6 @@ const InactiveMemberTracker = () => {
         <p className="text-gray-600">Monitor and manage inactive members</p>
       </div>
 
-      {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <Card className="glass-card">
           <CardContent className="p-6">
@@ -152,7 +148,6 @@ const InactiveMemberTracker = () => {
         </Card>
       </div>
 
-      {/* Search */}
       <Card className="glass-card mb-6">
         <CardContent className="p-4">
           <div className="relative">
@@ -167,7 +162,6 @@ const InactiveMemberTracker = () => {
         </CardContent>
       </Card>
 
-      {/* Member Categories */}
       <div className="space-y-6">
         {Object.entries(categories).map(([categoryKey, memberList]) => {
           const filteredList = filteredMembers(memberList);
@@ -244,7 +238,6 @@ const InactiveMemberTracker = () => {
         })}
       </div>
 
-      {/* Summary */}
       <Card className="glass-card mt-6">
         <CardHeader>
           <CardTitle>Inactivity Summary</CardTitle>

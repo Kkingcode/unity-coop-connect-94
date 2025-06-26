@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -87,7 +86,6 @@ const BroadcastMessaging = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Message Composer */}
         <Card className="glass-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -134,7 +132,6 @@ const BroadcastMessaging = () => {
           </CardContent>
         </Card>
 
-        {/* Member Selection */}
         <Card className="glass-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -143,7 +140,6 @@ const BroadcastMessaging = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {/* Filter Controls */}
             <div className="mb-4 space-y-3">
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
@@ -174,7 +170,6 @@ const BroadcastMessaging = () => {
               </div>
             </div>
 
-            {/* Member List */}
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {filteredMembers.map((member) => (
                 <div key={member.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
@@ -206,7 +201,6 @@ const BroadcastMessaging = () => {
         </Card>
       </div>
 
-      {/* Quick Message Templates */}
       <Card className="glass-card mt-6">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
