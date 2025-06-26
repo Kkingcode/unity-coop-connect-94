@@ -67,7 +67,7 @@ const InactiveMemberTracker = () => {
     const message = reminderMessages[type as keyof typeof reminderMessages];
     sendBroadcastMessage(message.title, message.message, memberIds);
     
-    addAdminLog(`Sent ${type} reminder to ${memberIds.length} members`, 'members', 'reminder_sent', new Date().toISOString());
+    addAdminLog(`Sent ${type} reminder to ${memberIds.length} members`, 'members', 'reminder_sent', [new Date().toISOString()]);
   };
 
   function formatCurrency(amount: number) {

@@ -61,7 +61,7 @@ const BroadcastMessaging = () => {
       : [];
 
     sendBroadcastMessage(messageData.title, messageData.message, targetMemberIds);
-    addAdminLog(`Sent "${messageData.title}" to ${targetMemberIds.length > 0 ? targetMemberIds.length : 'all'} members`, 'messaging', 'broadcast_message', new Date().toISOString());
+    addAdminLog(`Sent "${messageData.title}" to ${targetMemberIds.length > 0 ? targetMemberIds.length : 'all'} members`, 'messaging', 'broadcast_message', [new Date().toISOString()]);
 
     // Reset form
     setMessageData({ title: '', message: '', targetMembers: [] });
