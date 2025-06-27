@@ -1,5 +1,4 @@
 
-
 import { useState, useEffect, useCallback } from 'react';
 
 interface SessionSettings {
@@ -8,7 +7,7 @@ interface SessionSettings {
 }
 
 const DEFAULT_SETTINGS: SessionSettings = {
-  adminTimeoutMinutes: 240, // Changed to 4 hours (240 minutes) instead of 60
+  adminTimeoutMinutes: 480, // 8 hours - much longer timeout
   memberPersistentLogin: true
 };
 
@@ -43,12 +42,14 @@ export const useSessionManager = () => {
     localStorage.setItem('lastActivity', now.toString());
   }, []);
 
-  // Check if admin session should timeout - Fixed logic
+  // Check if admin session should timeout - More lenient logic
   const shouldTimeoutAdmin = useCallback(() => {
     const timeSinceActivity = Date.now() - lastActivity;
     const timeoutMs = sessionSettings.adminTimeoutMinutes * 60 * 1000;
     console.log(`Time since activity: ${Math.floor(timeSinceActivity / 1000)} seconds, Timeout threshold: ${Math.floor(timeoutMs / 1000)} seconds`);
-    return timeSinceActivity > timeoutMs;
+    
+    // Only timeout if significantly past the threshold to avoid false positives
+    return timeSinceActivity > (timeoutMs + 60000); // Add 1 minute buffer
   }, [lastActivity, sessionSettings.adminTimeoutMinutes]);
 
   // Enhanced persist login function
@@ -118,4 +119,3 @@ export const useSessionManager = () => {
     isSessionValid
   };
 };
-

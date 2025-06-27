@@ -62,7 +62,7 @@ const BroadcastMessaging = () => {
 
     sendBroadcastMessage(messageData.title, messageData.message, targetMemberIds);
     addAdminLog(
-      `Sent "${messageData.title}" to ${targetMemberIds.length > 0 ? targetMemberIds.length : 'all'} members`, 
+      [`Sent "${messageData.title}" to ${targetMemberIds.length > 0 ? targetMemberIds.length : 'all'} members`], 
       'messaging', 
       'broadcast_message', 
       new Date().toISOString()
@@ -181,7 +181,7 @@ const BroadcastMessaging = () => {
                   <div className="flex items-center space-x-3">
                     <Checkbox
                       checked={messageData.targetMembers.includes(String(member.id))}
-                      onCheckedChange={(checked) => handleMemberSelect(member.id, checked as boolean)}
+                      onCheckedChange={(checked) => handleMemberSelect(Number(member.id), checked as boolean)}
                     />
                     <div>
                       <p className="font-medium text-sm">{member.name}</p>
