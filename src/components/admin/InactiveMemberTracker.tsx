@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -79,7 +78,7 @@ const InactiveMemberTracker = () => {
       }
     });
 
-    // Fix: Pass parameters correctly
+    // Fix: Pass correct parameters to sendBroadcastMessage
     sendBroadcastMessage(message.title, message.message, memberIds);
     
     console.log('InactiveMemberTracker - addAdminLog params:', {
@@ -89,7 +88,7 @@ const InactiveMemberTracker = () => {
       timestamp: new Date().toISOString()
     });
     
-    // Fix: Pass single string instead of array for log entry
+    // Fix: Pass single string to addAdminLog
     addAdminLog(
       `Sent ${type} reminder to ${memberIds.length} members`, 
       'members', 
