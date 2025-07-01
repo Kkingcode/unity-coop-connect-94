@@ -3,14 +3,15 @@ import SplashScreen from '@/components/SplashScreen';
 import LoginScreen from '@/components/LoginScreen';
 import MemberDashboard from '@/components/MemberDashboard';
 import AdminDashboard from '@/components/AdminDashboard';
+import SuperAdminDashboard from '@/components/super-admin/SuperAdminDashboard';
 import LoanApplication from '@/components/LoanApplication';
 import TransactionHistory from '@/components/TransactionHistory';
 import NotificationsCenter from '@/components/NotificationsCenter';
 import MemberInvestmentDashboard from '@/components/MemberInvestmentDashboard';
 import { useSessionManager } from '@/hooks/useSessionManager';
 
-export type UserRole = 'member' | 'admin' | null;
-export type Screen = 'splash' | 'login' | 'member-dashboard' | 'admin-dashboard' | 'loan-application' | 'transaction-history' | 'notifications-center' | 'member-investments';
+export type UserRole = 'member' | 'admin' | 'super_admin' | null;
+export type Screen = 'splash' | 'login' | 'member-dashboard' | 'admin-dashboard' | 'super-admin-dashboard' | 'loan-application' | 'transaction-history' | 'notifications-center' | 'member-investments';
 
 const Index = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>('splash');
@@ -93,7 +94,8 @@ const Index = () => {
     if (loginCredentials) {
       const validCredentials = {
         admin: { username: 'admin', password: 'admin123' },
-        member: { username: 'member', password: 'member123' }
+        member: { username: 'member', password: 'member123' },
+        super_admin: { username: 'superadmin', password: 'super123' }
       };
       
       const expectedCreds = validCredentials[role as keyof typeof validCredentials];
@@ -108,7 +110,13 @@ const Index = () => {
     setUserRole(role);
     setUser(userData);
     persistLogin(role, userData);
-    setCurrentScreen(role === 'member' ? 'member-dashboard' : 'admin-dashboard');
+    
+    // Handle super admin routing
+    if (role === 'super_admin') {
+      setCurrentScreen('super-admin-dashboard');
+    } else {
+      setCurrentScreen(role === 'member' ? 'member-dashboard' : 'admin-dashboard');
+    }
     
     console.log(`${role} logged in successfully:`, userData);
   };
@@ -136,6 +144,8 @@ const Index = () => {
         return <MemberDashboard user={user} onNavigate={navigateToScreen} onLogout={handleLogout} />;
       case 'admin-dashboard':
         return <AdminDashboard user={user} onNavigate={navigateToScreen} onLogout={handleLogout} />;
+      case 'super-admin-dashboard':
+        return <SuperAdminDashboard />;
       case 'loan-application':
         return <LoanApplication user={user} onNavigate={navigateToScreen} />;
       case 'transaction-history':

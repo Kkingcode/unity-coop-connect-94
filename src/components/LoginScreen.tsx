@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,7 +25,9 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     // Simulate login delay
     setTimeout(() => {
       // Mock login logic with validation
-      if (memberID === 'admin' && password === 'admin123') {
+      if (memberID === 'superadmin' && password === 'super123') {
+        onLogin('super_admin', { id: 'superadmin', name: 'Super Admin', role: 'super_admin' });
+      } else if (memberID === 'admin' && password === 'admin123') {
         onLogin('admin', { id: 'admin', name: 'Admin User', role: 'admin' });
       } else if (memberID && password) {
         // Check if password is correct (basic validation)
@@ -128,6 +129,10 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
                 <br />
                 <span className="font-mono bg-gray-100 px-2 py-1 rounded text-xs">
                   Admin: admin + admin123
+                </span>
+                <br />
+                <span className="font-mono bg-gray-100 px-2 py-1 rounded text-xs">
+                  Super Admin: superadmin + super123
                 </span>
               </p>
             </div>
