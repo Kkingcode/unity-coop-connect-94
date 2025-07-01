@@ -79,17 +79,19 @@ const InactiveMemberTracker = () => {
       }
     });
 
+    // Fix: Pass parameters correctly
     sendBroadcastMessage(message.title, message.message, memberIds);
     
     console.log('InactiveMemberTracker - addAdminLog params:', {
-      logEntries: [`Sent ${type} reminder to ${memberIds.length} members`],
+      logEntry: `Sent ${type} reminder to ${memberIds.length} members`,
       category: 'members',
       action: 'reminder_sent',
       timestamp: new Date().toISOString()
     });
     
+    // Fix: Pass single string instead of array for log entry
     addAdminLog(
-      [`Sent ${type} reminder to ${memberIds.length} members`], 
+      `Sent ${type} reminder to ${memberIds.length} members`, 
       'members', 
       'reminder_sent', 
       new Date().toISOString()

@@ -73,17 +73,23 @@ const BroadcastMessaging = () => {
       }
     });
 
-    sendBroadcastMessage(messageData.title, messageData.message, targetMemberIds);
+    // Fix: Pass parameters in correct order and types
+    if (targetMemberIds.length > 0) {
+      sendBroadcastMessage(messageData.title, messageData.message, targetMemberIds);
+    } else {
+      sendBroadcastMessage(messageData.title, messageData.message, []);
+    }
     
     console.log('BroadcastMessaging - addAdminLog params:', {
-      logEntries: [`Sent "${messageData.title}" to ${targetMemberIds.length > 0 ? targetMemberIds.length : 'all'} members`],
+      logEntry: `Sent "${messageData.title}" to ${targetMemberIds.length > 0 ? targetMemberIds.length : 'all'} members`,
       category: 'messaging',
       action: 'broadcast_message',
       timestamp: new Date().toISOString()
     });
 
+    // Fix: Pass single string instead of array for log entry
     addAdminLog(
-      [`Sent "${messageData.title}" to ${targetMemberIds.length > 0 ? targetMemberIds.length : 'all'} members`], 
+      `Sent "${messageData.title}" to ${targetMemberIds.length > 0 ? targetMemberIds.length : 'all'} members`, 
       'messaging', 
       'broadcast_message', 
       new Date().toISOString()
