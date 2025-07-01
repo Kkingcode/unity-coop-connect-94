@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -60,7 +61,27 @@ const BroadcastMessaging = () => {
       ? messageData.targetMembers.map(id => Number(id))
       : [];
 
+    console.log('BroadcastMessaging - sendBroadcastMessage params:', {
+      title: messageData.title,
+      message: messageData.message,
+      targetMemberIds: targetMemberIds,
+      types: {
+        title: typeof messageData.title,
+        message: typeof messageData.message,
+        targetMemberIds: typeof targetMemberIds,
+        isArray: Array.isArray(targetMemberIds)
+      }
+    });
+
     sendBroadcastMessage(messageData.title, messageData.message, targetMemberIds);
+    
+    console.log('BroadcastMessaging - addAdminLog params:', {
+      logEntries: [`Sent "${messageData.title}" to ${targetMemberIds.length > 0 ? targetMemberIds.length : 'all'} members`],
+      category: 'messaging',
+      action: 'broadcast_message',
+      timestamp: new Date().toISOString()
+    });
+
     addAdminLog(
       [`Sent "${messageData.title}" to ${targetMemberIds.length > 0 ? targetMemberIds.length : 'all'} members`], 
       'messaging', 
@@ -181,7 +202,7 @@ const BroadcastMessaging = () => {
                   <div className="flex items-center space-x-3">
                     <Checkbox
                       checked={messageData.targetMembers.includes(String(member.id))}
-                      onCheckedChange={(checked) => handleMemberSelect(Number(member.id), checked as boolean)}
+                      onCheckedChange={(checked) => handleMemberSelect(member.id, checked as boolean)}
                     />
                     <div>
                       <p className="font-medium text-sm">{member.name}</p>

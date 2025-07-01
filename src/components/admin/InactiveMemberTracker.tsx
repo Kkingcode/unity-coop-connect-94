@@ -66,7 +66,27 @@ const InactiveMemberTracker = () => {
     };
 
     const message = reminderMessages[type as keyof typeof reminderMessages];
+    
+    console.log('InactiveMemberTracker - sendBroadcastMessage params:', {
+      title: message.title,
+      message: message.message,
+      memberIds: memberIds,
+      types: {
+        title: typeof message.title,
+        message: typeof message.message,
+        memberIds: typeof memberIds,
+        isArray: Array.isArray(memberIds)
+      }
+    });
+
     sendBroadcastMessage(message.title, message.message, memberIds);
+    
+    console.log('InactiveMemberTracker - addAdminLog params:', {
+      logEntries: [`Sent ${type} reminder to ${memberIds.length} members`],
+      category: 'members',
+      action: 'reminder_sent',
+      timestamp: new Date().toISOString()
+    });
     
     addAdminLog(
       [`Sent ${type} reminder to ${memberIds.length} members`], 
