@@ -34,12 +34,15 @@ const Index = () => {
     if (persistedUser) {
       // Validate session
       if (isSessionValid(persistedUser.role)) {
+        console.log('Restoring session for:', persistedUser.role);
         setUserRole(persistedUser.role);
         setUser(persistedUser.data);
-        setCurrentScreen(persistedUser.role === 'member' ? 'member-dashboard' : 'admin-dashboard');
+        setCurrentScreen(persistedUser.role === 'member' ? 'member-dashboard' : 
+                        persistedUser.role === 'super_admin' ? 'super-admin-dashboard' : 'admin-dashboard');
         return;
       } else {
         // Session expired, clear it
+        console.log('Session expired, clearing persisted login');
         clearPersistedLogin();
       }
     }
@@ -51,28 +54,34 @@ const Index = () => {
     return () => clearTimeout(timer);
   }, [getPersistedLogin, isSessionValid, clearPersistedLogin]);
 
-  // Much less frequent admin timeout check - every 5 minutes
+  // Much less frequent admin timeout check - every 10 minutes
   useEffect(() => {
-    if (userRole === 'admin') {
+    if (userRole === 'admin' || userRole === 'super_admin') {
+      console.log('Setting up session timeout check for:', userRole);
+      
       const interval = setInterval(() => {
+        console.log('Checking session timeout...');
         if (shouldTimeoutAdmin()) {
-          console.log('Admin session timed out');
+          console.log('Session timed out, logging out');
           handleLogout();
         }
-      }, 300000); // Check every 5 minutes instead of 1 minute
+      }, 600000); // Check every 10 minutes instead of 5 minutes
 
-      return () => clearInterval(interval);
+      return () => {
+        console.log('Clearing session timeout interval');
+        clearInterval(interval);
+      };
     }
   }, [userRole, shouldTimeoutAdmin]);
 
-  // Track user activity for admin timeout - less sensitive
+  // Less aggressive activity tracking for admins
   useEffect(() => {
-    if (userRole === 'admin') {
+    if (userRole === 'admin' || userRole === 'super_admin') {
       const handleActivity = () => {
         updateActivity();
       };
       
-      // Less comprehensive activity tracking to reduce false updates
+      // Only track significant user interactions
       const events = ['click', 'keydown'];
       
       events.forEach(event => {
@@ -88,6 +97,8 @@ const Index = () => {
   }, [userRole, updateActivity]);
 
   const handleLogin = (role: UserRole, userData: any, loginCredentials?: { username: string; password: string }) => {
+    console.log('Handling login for role:', role);
+    
     // Clear any previous login errors
     setLoginError('');
     
@@ -112,7 +123,7 @@ const Index = () => {
     setUser(userData);
     persistLogin(role, userData);
     
-    // Handle super admin routing
+    // Handle routing based on role
     if (role === 'super_admin') {
       setCurrentScreen('super-admin-dashboard');
     } else {
