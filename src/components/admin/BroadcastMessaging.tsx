@@ -61,7 +61,10 @@ const BroadcastMessaging = () => {
       ? messageData.targetMembers.map(id => Number(id))
       : [];
 
-    console.log('BroadcastMessaging - sendBroadcastMessage params:', {
+    console.log('BroadcastMessaging - Debugging function signatures:');
+    console.log('sendBroadcastMessage type:', typeof sendBroadcastMessage);
+    console.log('addAdminLog type:', typeof addAdminLog);
+    console.log('Parameters being passed to sendBroadcastMessage:', {
       title: messageData.title,
       message: messageData.message,
       targetMemberIds: targetMemberIds,
@@ -73,23 +76,36 @@ const BroadcastMessaging = () => {
       }
     });
 
-    // Fix: Ensure we always pass an array to sendBroadcastMessage
-    sendBroadcastMessage(messageData.title, messageData.message, targetMemberIds);
+    // Fix: Call sendBroadcastMessage with correct parameters
+    try {
+      sendBroadcastMessage(messageData.title, messageData.message, targetMemberIds);
+      console.log('sendBroadcastMessage called successfully');
+    } catch (error) {
+      console.error('Error calling sendBroadcastMessage:', error);
+    }
     
-    console.log('BroadcastMessaging - addAdminLog params:', {
-      logEntry: `Sent "${messageData.title}" to ${targetMemberIds.length > 0 ? targetMemberIds.length : 'all'} members`,
+    // Fix: Call addAdminLog with correct parameters
+    const logMessage = `Sent "${messageData.title}" to ${targetMemberIds.length > 0 ? targetMemberIds.length : 'all'} members`;
+    
+    console.log('Parameters being passed to addAdminLog:', {
+      logMessage: logMessage,
       category: 'messaging',
       action: 'broadcast_message',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      types: {
+        logMessage: typeof logMessage,
+        category: typeof 'messaging',
+        action: typeof 'broadcast_message',
+        timestamp: typeof new Date().toISOString()
+      }
     });
 
-    // Fix: Pass single string to addAdminLog
-    addAdminLog(
-      `Sent "${messageData.title}" to ${targetMemberIds.length > 0 ? targetMemberIds.length : 'all'} members`, 
-      'messaging', 
-      'broadcast_message', 
-      new Date().toISOString()
-    );
+    try {
+      addAdminLog(logMessage, 'messaging', 'broadcast_message', new Date().toISOString());
+      console.log('addAdminLog called successfully');
+    } catch (error) {
+      console.error('Error calling addAdminLog:', error);
+    }
 
     // Reset form
     setMessageData({ title: '', message: '', targetMembers: [] });

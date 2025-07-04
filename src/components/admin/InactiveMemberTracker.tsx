@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -66,7 +67,10 @@ const InactiveMemberTracker = () => {
 
     const message = reminderMessages[type as keyof typeof reminderMessages];
     
-    console.log('InactiveMemberTracker - sendBroadcastMessage params:', {
+    console.log('InactiveMemberTracker - Debugging function signatures:');
+    console.log('sendBroadcastMessage type:', typeof sendBroadcastMessage);
+    console.log('addAdminLog type:', typeof addAdminLog);
+    console.log('Parameters being passed to sendBroadcastMessage:', {
       title: message.title,
       message: message.message,
       memberIds: memberIds,
@@ -78,23 +82,36 @@ const InactiveMemberTracker = () => {
       }
     });
 
-    // Fix: Pass correct parameters to sendBroadcastMessage
-    sendBroadcastMessage(message.title, message.message, memberIds);
+    // Fix: Call sendBroadcastMessage with correct parameters
+    try {
+      sendBroadcastMessage(message.title, message.message, memberIds);
+      console.log('sendBroadcastMessage called successfully');
+    } catch (error) {
+      console.error('Error calling sendBroadcastMessage:', error);
+    }
     
-    console.log('InactiveMemberTracker - addAdminLog params:', {
-      logEntry: `Sent ${type} reminder to ${memberIds.length} members`,
+    // Fix: Call addAdminLog with correct parameters
+    const logMessage = `Sent ${type} reminder to ${memberIds.length} members`;
+    
+    console.log('Parameters being passed to addAdminLog:', {
+      logMessage: logMessage,
       category: 'members',
       action: 'reminder_sent',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      types: {
+        logMessage: typeof logMessage,
+        category: typeof 'members',
+        action: typeof 'reminder_sent',
+        timestamp: typeof new Date().toISOString()
+      }
     });
     
-    // Fix: Pass single string to addAdminLog
-    addAdminLog(
-      `Sent ${type} reminder to ${memberIds.length} members`, 
-      'members', 
-      'reminder_sent', 
-      new Date().toISOString()
-    );
+    try {
+      addAdminLog(logMessage, 'members', 'reminder_sent', new Date().toISOString());
+      console.log('addAdminLog called successfully');
+    } catch (error) {
+      console.error('Error calling addAdminLog:', error);
+    }
   };
 
   function formatCurrency(amount: number) {
