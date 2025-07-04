@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,7 +14,7 @@ const BroadcastMessaging = () => {
   const [messageData, setMessageData] = useState({
     title: '',
     message: '',
-    targetMembers: [] as string[]
+    targetMembers: [] as number[]
   });
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectAll, setSelectAll] = useState(false);
@@ -28,7 +29,7 @@ const BroadcastMessaging = () => {
     if (checked) {
       setMessageData({
         ...messageData,
-        targetMembers: filteredMembers.map(m => String(m.id))
+        targetMembers: filteredMembers.map(m => m.id)
       });
     } else {
       setMessageData({
@@ -39,16 +40,15 @@ const BroadcastMessaging = () => {
   };
 
   const handleMemberSelect = (memberId: number, checked: boolean) => {
-    const memberIdStr = String(memberId);
     if (checked) {
       setMessageData({
         ...messageData,
-        targetMembers: [...messageData.targetMembers, memberIdStr]
+        targetMembers: [...messageData.targetMembers, memberId]
       });
     } else {
       setMessageData({
         ...messageData,
-        targetMembers: messageData.targetMembers.filter(id => id !== memberIdStr)
+        targetMembers: messageData.targetMembers.filter(id => id !== memberId)
       });
     }
   };
@@ -57,7 +57,7 @@ const BroadcastMessaging = () => {
     if (!messageData.title || !messageData.message) return;
 
     const targetMemberIds = messageData.targetMembers.length > 0 
-      ? messageData.targetMembers.map(id => Number(id))
+      ? messageData.targetMembers
       : [];
 
     console.log('BroadcastMessaging - Debugging function signatures:');
@@ -218,7 +218,7 @@ const BroadcastMessaging = () => {
                 <div key={member.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
                   <div className="flex items-center space-x-3">
                     <Checkbox
-                      checked={messageData.targetMembers.includes(String(member.id))}
+                      checked={messageData.targetMembers.includes(member.id)}
                       onCheckedChange={(checked) => handleMemberSelect(member.id, checked as boolean)}
                     />
                     <div>
