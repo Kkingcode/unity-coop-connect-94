@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -58,8 +59,8 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
           <div className="mx-auto w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mb-4">
             <Building2 size={32} className="text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Welcome Back</h1>
-          <p className="text-gray-600">Sign in to your ONCS account</p>
+          <h1 className="text-2xl font-bold text-gray-900">Welcome to Alajeseku.com</h1>
+          <p className="text-gray-600">Your Cooperative Management Platform</p>
         </div>
 
         <Card className="glass-card">

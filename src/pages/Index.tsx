@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import SplashScreen from '@/components/SplashScreen';
 import LoginScreen from '@/components/LoginScreen';

@@ -34,7 +34,9 @@ const AddCooperativeModal = ({ onClose }: AddCooperativeModalProps) => {
       defaultInterestRate: 10,
       maxLoanTerm: 12,
       collateralRequired: false,
-      guarantorsRequired: 1
+      guarantorsRequired: 1,
+      autoApprovalLimit: 25000,
+      latePaymentGracePeriod: 7
     },
     savingsSettings: {
       minimumBalance: 2000,
@@ -42,18 +44,30 @@ const AddCooperativeModal = ({ onClose }: AddCooperativeModalProps) => {
       withdrawalLimits: {
         daily: 20000,
         monthly: 80000
-      }
+      },
+      compoundingFrequency: 'monthly'
     },
     membershipSettings: {
       registrationFee: 1000,
       monthlyDues: 500,
       minimumAge: 18,
-      documentRequirements: ['National ID', 'Passport Photo']
+      maximumAge: 65,
+      documentRequirements: ['National ID', 'Passport Photo'],
+      approvalWorkflow: 'manual',
+      probationPeriod: 90
     },
     fineStructure: {
       latePaymentFine: 300,
       missedMeetingFine: 100,
-      defaultLoanFine: 500
+      defaultLoanFine: 500,
+      documentationFine: 50,
+      customFines: []
+    },
+    meetingSettings: {
+      frequency: 'monthly',
+      quorumPercentage: 60,
+      votingThreshold: 75,
+      allowVirtualAttendance: true
     }
   });
 
@@ -67,7 +81,27 @@ const AddCooperativeModal = ({ onClose }: AddCooperativeModalProps) => {
       lastPayment: new Date().toISOString(),
       nextBilling: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
       monthlyFee: selectedTier?.price || 15000,
-      settings
+      settings,
+      customization: {
+        theme: {
+          primaryColor: formData.primaryColor,
+          secondaryColor: formData.secondaryColor,
+          accentColor: '#10B981',
+          backgroundColor: '#F9FAFB',
+          textColor: '#111827'
+        },
+        branding: {
+          logo: formData.logo,
+          favicon: '/favicon.ico',
+          motto: formData.motto,
+          tagline: 'Building wealth together'
+        },
+        features: {
+          enabledModules: ['loans', 'savings', 'meetings'],
+          customFields: [],
+          dashboardLayout: 'default'
+        }
+      }
     };
 
     addCooperative(cooperativeData);
