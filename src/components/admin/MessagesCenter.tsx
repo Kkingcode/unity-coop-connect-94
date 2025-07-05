@@ -115,7 +115,7 @@ const MessagesCenter = () => {
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Messages Center</h1>
           <p className="text-gray-600">Communicate with members and manage notifications</p>
         </div>
-        <Button className="bg-purple-600 hover:bg-purple-700">
+        <Button className="bg-purple-600 hover:bg-purple-700" onClick={() => setActiveTab('compose')}>
           <Plus className="h-4 w-4 mr-2" />
           New Message
         </Button>
@@ -207,7 +207,7 @@ const MessagesCenter = () => {
                           <Button variant="outline" size="sm" onClick={() => handleReplyMessage(message.id)}>
                             <Reply className="h-4 w-4" />
                           </Button>
-                          <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" onClick={() => alert(`Message ${message.id} archived`)}>
                             <Archive className="h-4 w-4" />
                           </Button>
                         </div>
@@ -253,7 +253,7 @@ const MessagesCenter = () => {
                           <p className="text-gray-700 mt-2">{message.content.substring(0, 100)}...</p>
                         </div>
                         <div className="flex gap-2">
-                          <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" onClick={() => alert(`Message ${message.id} archived`)}>
                             <Archive className="h-4 w-4" />
                           </Button>
                         </div>

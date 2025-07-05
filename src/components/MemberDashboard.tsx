@@ -246,7 +246,7 @@ const MemberDashboard = ({ user, onNavigate, onLogout }: MemberDashboardProps) =
             </CardContent>
           </Card>
 
-          <Card className="glass-card">
+          <Card className="glass-card hover:shadow-lg transition-all duration-200 cursor-pointer hover:border-gray-300" onClick={() => alert('Profile settings feature coming soon!')}>
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
                 <div className="p-3 bg-gray-100 rounded-full">

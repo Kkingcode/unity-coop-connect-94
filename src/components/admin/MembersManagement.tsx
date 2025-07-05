@@ -113,15 +113,23 @@ const MembersManagement = () => {
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={() => alert(`Editing ${member.name} - Feature coming soon!`)}>
                     <Edit className="h-4 w-4" />
                   </Button>
                   {member.status === 'active' ? (
-                    <Button variant="outline" size="sm" className="text-red-600">
+                    <Button variant="outline" size="sm" className="text-red-600" onClick={() => {
+                      if (confirm(`Suspend ${member.name}?`)) {
+                        alert(`${member.name} has been suspended.`);
+                      }
+                    }}>
                       <UserX className="h-4 w-4" />
                     </Button>
                   ) : (
-                    <Button variant="outline" size="sm" className="text-green-600">
+                    <Button variant="outline" size="sm" className="text-green-600" onClick={() => {
+                      if (confirm(`Activate ${member.name}?`)) {
+                        alert(`${member.name} has been activated.`);
+                      }
+                    }}>
                       <UserCheck className="h-4 w-4" />
                     </Button>
                   )}

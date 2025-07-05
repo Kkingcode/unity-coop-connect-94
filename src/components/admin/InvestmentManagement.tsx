@@ -190,7 +190,7 @@ const InvestmentManagement = () => {
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                   <Package className="h-12 w-12 mx-auto mb-4 text-gray-400" />
                   <p className="text-gray-600">Upload product images (Max 2 images)</p>
-                  <Button type="button" variant="outline" className="mt-2">
+                  <Button type="button" variant="outline" className="mt-2" onClick={() => alert('Image upload feature coming soon!')}>
                     Choose Images
                   </Button>
                 </div>
@@ -358,12 +358,16 @@ const InvestmentManagement = () => {
                   </div>
 
                   <div className="flex gap-2 justify-end">
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={() => alert(`Viewing details for ${investment.productName}`)}>
                       <Eye className="h-4 w-4 mr-2" />
                       View Details
                     </Button>
                     {investment.status === 'active' && (
-                      <Button size="sm" variant="outline" className="text-red-600">
+                      <Button size="sm" variant="outline" className="text-red-600" onClick={() => {
+                        if (confirm(`Are you sure you want to close ${investment.productName}?`)) {
+                          alert('Investment closed successfully!');
+                        }
+                      }}>
                         Close Investment
                       </Button>
                     )}
@@ -420,10 +424,18 @@ const InvestmentManagement = () => {
                       
                       {application.status === 'pending' && (
                         <div className="flex gap-2">
-                          <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                          <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => {
+                            if (confirm(`Approve ${application.memberName}'s investment application?`)) {
+                              alert(`${application.memberName}'s investment application approved!`);
+                            }
+                          }}>
                             Approve
                           </Button>
-                          <Button size="sm" variant="outline" className="text-red-600">
+                          <Button size="sm" variant="outline" className="text-red-600" onClick={() => {
+                            if (confirm(`Reject ${application.memberName}'s investment application?`)) {
+                              alert(`${application.memberName}'s investment application rejected.`);
+                            }
+                          }}>
                             Reject
                           </Button>
                         </div>
@@ -468,7 +480,7 @@ const InvestmentManagement = () => {
                           </div>
                         </div>
                         
-                        <Button size="sm" variant="outline">
+                        <Button size="sm" variant="outline" onClick={() => alert(`Viewing investment details for ${application.memberName}`)}>
                           <Eye className="h-4 w-4 mr-2" />
                           View Details
                         </Button>

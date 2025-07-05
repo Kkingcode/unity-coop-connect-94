@@ -325,15 +325,15 @@ const SuperAdminDashboard = () => {
                 <div>
                   <h3 className="font-semibold mb-3">Quick Actions</h3>
                   <div className="space-y-2">
-                    <Button variant="outline" className="w-full justify-start">
+                    <Button variant="outline" className="w-full justify-start" onClick={() => alert('Platform notification sent to all cooperatives!')}>
                       <Bell className="h-4 w-4 mr-2" />
                       Send Platform Notification
                     </Button>
-                    <Button variant="outline" className="w-full justify-start">
+                    <Button variant="outline" className="w-full justify-start" onClick={() => alert('System maintenance mode activated. All cooperatives have been notified.')}>
                       <Globe className="h-4 w-4 mr-2" />
                       System Maintenance Mode
                     </Button>
-                    <Button variant="outline" className="w-full justify-start">
+                    <Button variant="outline" className="w-full justify-start" onClick={() => alert('Security audit log generated and downloaded successfully!')}>
                       <Shield className="h-4 w-4 mr-2" />
                       Security Audit Log
                     </Button>

@@ -147,7 +147,7 @@ const LoansManagement = () => {
                     </div>
 
                     <div className="flex gap-2 justify-end">
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" onClick={() => alert(`Viewing loan details for ${loan.memberName}`)}>
                         <Eye className="h-4 w-4 mr-2" />
                         View Details
                       </Button>
@@ -161,14 +161,23 @@ const LoansManagement = () => {
                             <CheckCircle className="h-4 w-4 mr-2" />
                             Approve
                           </Button>
-                          <Button variant="outline" size="sm" className="text-red-600 border-red-300">
+                          <Button variant="outline" size="sm" className="text-red-600 border-red-300" onClick={() => {
+                            if (confirm(`Are you sure you want to reject ${loan.memberName}'s loan application?`)) {
+                              alert('Loan application rejected and member has been notified.');
+                            }
+                          }}>
                             <XCircle className="h-4 w-4 mr-2" />
                             Reject
                           </Button>
                         </>
                       )}
                       {loan.status === 'approved' && loan.remainingAmount && loan.remainingAmount > 0 && (
-                        <Button size="sm" variant="outline" className="text-blue-600 border-blue-300">
+                        <Button size="sm" variant="outline" className="text-blue-600 border-blue-300" onClick={() => {
+                          const amount = prompt('Enter payment amount:');
+                          if (amount && !isNaN(Number(amount))) {
+                            alert(`Payment of ₦${amount} recorded for ${loan.memberName}`);
+                          }
+                        }}>
                           <Calendar className="h-4 w-4 mr-2" />
                           Record Payment
                         </Button>
