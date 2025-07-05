@@ -9,7 +9,7 @@ import { useAppState } from '@/hooks/useAppState';
 const InactiveMemberTracker = () => {
   const { members, sendBroadcastMessage, addAdminLog } = useAppState();
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
 
   const getInactivityPeriod = (member: any) => {
     const lastActivity = new Date(member.lastActivityDate || member.joinDate);
@@ -44,7 +44,7 @@ const InactiveMemberTracker = () => {
     );
   };
 
-  const handleSendReminder = (memberIds: number[], type: string) => {
+  const handleSendReminder = (memberIds: string[], type: string) => {
     const reminderMessages = {
       atRisk: {
         title: "We Miss You!",
@@ -81,32 +81,19 @@ const InactiveMemberTracker = () => {
       }
     });
 
-    // Fix: Call sendBroadcastMessage with correct parameters
+    // Fix: Call sendBroadcastMessage with correct parameters (memberIds, message, subject)
     try {
-      sendBroadcastMessage(message.title, message.message, memberIds);
+      sendBroadcastMessage(memberIds, message.message, message.title);
       console.log('sendBroadcastMessage called successfully');
     } catch (error) {
       console.error('Error calling sendBroadcastMessage:', error);
     }
     
-    // Fix: Call addAdminLog with correct parameters
+    // Fix: Call addAdminLog with correct parameters (adminId, adminName, action, details)
     const logMessage = `Sent ${type} reminder to ${memberIds.length} members`;
     
-    console.log('Parameters being passed to addAdminLog:', {
-      logMessage: logMessage,
-      category: 'members',
-      action: 'reminder_sent',
-      timestamp: new Date().toISOString(),
-      types: {
-        logMessage: typeof logMessage,
-        category: typeof 'members',
-        action: typeof 'reminder_sent',
-        timestamp: typeof new Date().toISOString()
-      }
-    });
-    
     try {
-      addAdminLog(logMessage, 'members', 'reminder_sent', new Date().toISOString());
+      addAdminLog('ADMIN001', 'Admin User', 'Reminder Sent', logMessage);
       console.log('addAdminLog called successfully');
     } catch (error) {
       console.error('Error calling addAdminLog:', error);

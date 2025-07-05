@@ -14,7 +14,7 @@ const BroadcastMessaging = () => {
   const [messageData, setMessageData] = useState({
     title: '',
     message: '',
-    targetMembers: [] as number[]
+    targetMembers: [] as string[]
   });
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectAll, setSelectAll] = useState(false);
@@ -39,7 +39,7 @@ const BroadcastMessaging = () => {
     }
   };
 
-  const handleMemberSelect = (memberId: number, checked: boolean) => {
+  const handleMemberSelect = (memberId: string, checked: boolean) => {
     if (checked) {
       setMessageData({
         ...messageData,
@@ -75,32 +75,19 @@ const BroadcastMessaging = () => {
       }
     });
 
-    // Fix: Call sendBroadcastMessage with correct parameters
+    // Fix: Call sendBroadcastMessage with correct parameters (memberIds, message, subject)
     try {
-      sendBroadcastMessage(messageData.title, messageData.message, targetMemberIds);
+      sendBroadcastMessage(targetMemberIds, messageData.message, messageData.title);
       console.log('sendBroadcastMessage called successfully');
     } catch (error) {
       console.error('Error calling sendBroadcastMessage:', error);
     }
     
-    // Fix: Call addAdminLog with correct parameters
+    // Fix: Call addAdminLog with correct parameters (adminId, adminName, action, details)
     const logMessage = `Sent "${messageData.title}" to ${targetMemberIds.length > 0 ? targetMemberIds.length : 'all'} members`;
     
-    console.log('Parameters being passed to addAdminLog:', {
-      logMessage: logMessage,
-      category: 'messaging',
-      action: 'broadcast_message',
-      timestamp: new Date().toISOString(),
-      types: {
-        logMessage: typeof logMessage,
-        category: typeof 'messaging',
-        action: typeof 'broadcast_message',
-        timestamp: typeof new Date().toISOString()
-      }
-    });
-
     try {
-      addAdminLog(logMessage, 'messaging', 'broadcast_message', new Date().toISOString());
+      addAdminLog('ADMIN001', 'Admin User', 'Broadcast Message', logMessage);
       console.log('addAdminLog called successfully');
     } catch (error) {
       console.error('Error calling addAdminLog:', error);
