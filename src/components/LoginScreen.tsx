@@ -6,13 +6,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Building2, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 import { UserRole } from '@/pages/Index';
+import { authService, AuthUser } from '@/services/authService';
+import { toast } from 'sonner';
 
 interface LoginScreenProps {
-  onLogin: (role: UserRole, userData: any) => void;
+  onLogin: (role: UserRole, userData: AuthUser) => void;
 }
 
 const LoginScreen = ({ onLogin }: LoginScreenProps) => {
-  const [memberID, setMemberID] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -23,33 +25,52 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     setIsLoading(true);
     setError('');
 
-    // Simulate login delay
-    setTimeout(() => {
-      // Mock login logic with validation
-      if (memberID === 'superadmin' && password === 'super123') {
-        onLogin('super_admin', { id: 'superadmin', name: 'Super Admin', role: 'super_admin' });
-      } else if (memberID === 'admin' && password === 'admin123') {
-        onLogin('admin', { id: 'admin', name: 'Admin User', role: 'admin' });
-      } else if (memberID && password) {
-        // Check if password is correct (basic validation)
-        if (password.length < 3) {
-          setError('Incorrect login details. Please check and try again.');
-          setIsLoading(false);
-          return;
-        }
-        onLogin('member', { 
-          id: memberID, 
-          name: 'John Doe', 
-          role: 'member',
-          balance: 125000,
-          savings: 45000,
-          loanBalance: 25000
-        });
-      } else {
-        setError('Incorrect login details. Please check and try again.');
+    try {
+      // Demo accounts for testing
+      if (accountNumber === 'SUPER001' && password === 'super123') {
+        onLogin('super_admin', { 
+          id: 'super001', 
+          name: 'Super Administrator', 
+          role: 'super_admin',
+          phone: '+2348000000001',
+          account_number: 'SUPER001',
+          status: 'active'
+        } as AuthUser);
+        setIsLoading(false);
+        return;
       }
+      
+      if (accountNumber === 'ADMIN001' && password === 'admin123') {
+        onLogin('admin', { 
+          id: 'admin001', 
+          name: 'Main Administrator', 
+          role: 'admin',
+          phone: '+2348000000002',
+          account_number: 'ADMIN001',
+          status: 'active'
+        } as AuthUser);
+        setIsLoading(false);
+        return;
+      }
+
+      // Real authentication with Supabase
+      const user = await authService.login({
+        accountNumber,
+        password
+      });
+
+      if (user) {
+        toast.success(`Welcome back, ${user.name || 'User'}!`);
+        onLogin(user.role, user);
+      } else {
+        setError('Invalid account number or password. Please check and try again.');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      setError('Login failed. Please check your credentials and try again.');
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -80,13 +101,13 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="memberID">Member ID</Label>
+                <Label htmlFor="accountNumber">Account Number</Label>
                 <Input
-                  id="memberID"
+                  id="accountNumber"
                   type="text"
-                  placeholder="Enter your member ID"
-                  value={memberID}
-                  onChange={(e) => setMemberID(e.target.value)}
+                  placeholder="Enter your account number"
+                  value={accountNumber}
+                  onChange={(e) => setAccountNumber(e.target.value)}
                   required
                 />
               </div>
@@ -125,15 +146,15 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
               <p className="text-sm text-gray-600">
                 Demo credentials: <br />
                 <span className="font-mono bg-gray-100 px-2 py-1 rounded text-xs">
-                  Member: any ID + password (min 3 chars)
+                  Super Admin: SUPER001 + super123
                 </span>
                 <br />
                 <span className="font-mono bg-gray-100 px-2 py-1 rounded text-xs">
-                  Admin: admin + admin123
+                  Admin: ADMIN001 + admin123
                 </span>
                 <br />
                 <span className="font-mono bg-gray-100 px-2 py-1 rounded text-xs">
-                  Super Admin: superadmin + super123
+                  Members: Use account number + phone as password
                 </span>
               </p>
             </div>
