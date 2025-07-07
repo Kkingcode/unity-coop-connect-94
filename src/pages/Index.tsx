@@ -11,7 +11,7 @@ import NotificationsCenter from '@/components/NotificationsCenter';
 import MemberInvestmentDashboard from '@/components/MemberInvestmentDashboard';
 import { useSessionManager } from '@/hooks/useSessionManager';
 
-export type UserRole = 'member' | 'admin' | 'super_admin' | null;
+export type UserRole = 'member' | 'admin' | 'sub_admin' | 'super_admin' | null;
 export type Screen = 'splash' | 'login' | 'member-dashboard' | 'admin-dashboard' | 'super-admin-dashboard' | 'loan-application' | 'transaction-history' | 'notifications-center' | 'member-investments';
 
 const Index = () => {
