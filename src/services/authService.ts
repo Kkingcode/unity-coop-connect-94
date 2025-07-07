@@ -181,9 +181,39 @@ class AuthService {
   // Change password
   async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<boolean> {
     try {
-      // For demo purposes, always return true
-      // In real implementation, this would update the password in Supabase
-      console.log('Password change simulated for user:', userId);
+      // Get user's current password hash
+      const { data: userData, error: userError } = await supabaseClient
+        .from('users')
+        .select('password_hash')
+        .eq('id', userId)
+        .single();
+
+      if (userError || !userData) {
+        console.error('User not found:', userError);
+        return false;
+      }
+
+      // Verify current password
+      const isValidPassword = await bcrypt.compare(currentPassword, userData.password_hash);
+      if (!isValidPassword) {
+        console.error('Invalid current password');
+        return false;
+      }
+
+      // Hash new password
+      const newPasswordHash = await bcrypt.hash(newPassword, 10);
+
+      // Update password
+      const { error: updateError } = await supabaseClient
+        .from('users')
+        .update({ password_hash: newPasswordHash })
+        .eq('id', userId);
+
+      if (updateError) {
+        console.error('Error updating password:', updateError);
+        return false;
+      }
+
       return true;
     } catch (error) {
       console.error('Change password error:', error);
@@ -194,19 +224,52 @@ class AuthService {
   // Get user profile
   async getUserProfile(userId: string): Promise<AuthUser | null> {
     try {
-      // For demo purposes, return mock data
-      // In real implementation, this would fetch from Supabase
-      return {
-        id: userId,
-        phone: '+2348000000000',
-        role: 'member',
-        status: 'active',
-        account_number: 'ACC123456',
-        name: 'Demo User',
-        balance: 0,
-        savings_balance: 0,
-        loan_balance: 0
+      const { data: userData, error: userError } = await supabaseClient
+        .from('users')
+        .select(`
+          *,
+          members(*),
+          admins(*)
+        `)
+        .eq('id', userId)
+        .single();
+
+      if (userError || !userData) {
+        console.error('User not found:', userError);
+        return null;
+      }
+
+      // Build user object based on role
+      let name = '';
+      let balance = 0;
+      let savings_balance = 0;
+      let loan_balance = 0;
+
+      if (userData.role === 'member' && userData.members?.[0]) {
+        const member = userData.members[0];
+        name = member.name;
+        balance = member.balance || 0;
+        savings_balance = member.savings_balance || 0;
+        loan_balance = member.loan_balance || 0;
+      } else if ((userData.role === 'admin' || userData.role === 'super_admin' || userData.role === 'sub_admin') && userData.admins?.[0]) {
+        const admin = userData.admins[0];
+        name = admin.name;
+      }
+
+      const user: AuthUser = {
+        id: userData.id,
+        email: userData.email,
+        phone: userData.phone,
+        role: userData.role,
+        status: userData.status,
+        account_number: userData.account_number,
+        name,
+        balance,
+        savings_balance,
+        loan_balance
       };
+
+      return user;
     } catch (error) {
       console.error('Get user profile error:', error);
       return null;
@@ -228,20 +291,56 @@ class AuthService {
   // Get all members (admin only)
   async getAllMembers(): Promise<AuthUser[]> {
     try {
-      // For demo purposes, return empty array
-      // In real implementation, this would fetch from Supabase
-      return [];
+      const { data: usersData, error: usersError } = await supabaseClient
+        .from('users')
+        .select(`
+          *,
+          members(*)
+        `)
+        .eq('role', 'member')
+        .order('created_at', { ascending: false });
+
+      if (usersError) {
+        console.error('Error fetching members:', usersError);
+        return [];
+      }
+
+      const members: AuthUser[] = usersData.map((userData: any) => {
+        const member = userData.members?.[0];
+        return {
+          id: userData.id,
+          email: userData.email,
+          phone: userData.phone,
+          role: userData.role,
+          status: userData.status,
+          account_number: userData.account_number,
+          name: member?.name || '',
+          balance: member?.balance || 0,
+          savings_balance: member?.savings_balance || 0,
+          loan_balance: member?.loan_balance || 0
+        };
+      });
+
+      return members;
     } catch (error) {
       console.error('Get all members error:', error);
       return [];
     }
   }
 
-  // Suspend/Activate member
+  // Update member status
   async updateMemberStatus(userId: string, status: 'active' | 'suspended'): Promise<boolean> {
     try {
-      // For demo purposes, always return true
-      console.log('Member status update simulated for user:', userId, 'to status:', status);
+      const { error } = await supabaseClient
+        .from('users')
+        .update({ status })
+        .eq('id', userId);
+
+      if (error) {
+        console.error('Error updating member status:', error);
+        return false;
+      }
+
       return true;
     } catch (error) {
       console.error('Update member status error:', error);

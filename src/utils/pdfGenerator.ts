@@ -227,3 +227,38 @@ export const generateMembershipApplicationPDF = (memberData: MemberData, signatu
   
   return pdf;
 };
+
+// PDF Statement Generator
+export const generateMemberStatement = async (member: any) => {
+  const pdf = new jsPDF();
+  
+  // Header
+  pdf.setFontSize(20);
+  pdf.text('Alajeseku Cooperative Society', 20, 20);
+  pdf.setFontSize(16);
+  pdf.text('Member Statement', 20, 35);
+  
+  // Member Details
+  pdf.setFontSize(12);
+  pdf.text(`Member Name: ${member.name}`, 20, 55);
+  pdf.text(`Account Number: ${member.account_number}`, 20, 65);
+  pdf.text(`Phone: ${member.phone}`, 20, 75);
+  pdf.text(`Email: ${member.email || 'N/A'}`, 20, 85);
+  pdf.text(`Status: ${member.status}`, 20, 95);
+  
+  // Financial Summary
+  pdf.setFontSize(14);
+  pdf.text('Financial Summary', 20, 115);
+  pdf.setFontSize(12);
+  pdf.text(`Current Balance: ₦${(member.balance || 0).toLocaleString()}`, 20, 130);
+  pdf.text(`Savings Balance: ₦${(member.savings_balance || 0).toLocaleString()}`, 20, 140);
+  pdf.text(`Loan Balance: ₦${(member.loan_balance || 0).toLocaleString()}`, 20, 150);
+  
+  // Footer
+  pdf.setFontSize(10);
+  pdf.text('Generated on: ' + new Date().toLocaleDateString(), 20, 280);
+  pdf.text('Alajeseku Cooperative Society - Member Statement', 20, 290);
+  
+  // Save the PDF
+  pdf.save(`${member.name}_Statement_${new Date().toISOString().split('T')[0]}.pdf`);
+};

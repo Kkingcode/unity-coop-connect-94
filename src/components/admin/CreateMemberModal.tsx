@@ -12,10 +12,10 @@ import { toast } from 'sonner';
 interface CreateMemberModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onMemberCreated: (accountNumber: string) => void;
+  onSuccess: () => void;
 }
 
-const CreateMemberModal = ({ isOpen, onClose, onMemberCreated }: CreateMemberModalProps) => {
+const CreateMemberModal = ({ isOpen, onClose, onSuccess }: CreateMemberModalProps) => {
   const [formData, setFormData] = useState<CreateMemberData>({
     name: '',
     phone: '',
@@ -48,7 +48,7 @@ const CreateMemberModal = ({ isOpen, onClose, onMemberCreated }: CreateMemberMod
         toast.success(`Member created successfully! Account Number: ${result.accountNumber}`, {
           description: `${formData.name} can now login with account number ${result.accountNumber} and phone number as password.`
         });
-        onMemberCreated(result.accountNumber);
+        onSuccess();
         onClose();
         setFormData({
           name: '',
