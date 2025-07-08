@@ -25,7 +25,7 @@ const AddCooperativeModal = ({ onClose }: AddCooperativeModalProps) => {
     logo: '/placeholder.svg',
     primaryColor: '#3B82F6',
     secondaryColor: '#1E40AF',
-    subscriptionTier: 'starter' as 'starter' | 'professional' | 'enterprise' | 'custom'
+    subscriptionTier: 'starter' as 'starter' | 'professional' | 'enterprise'
   });
 
   const [settings, setSettings] = useState<CooperativeSettings>({
@@ -73,39 +73,59 @@ const AddCooperativeModal = ({ onClose }: AddCooperativeModalProps) => {
 
   const selectedTier = subscriptionTiers.find(tier => tier.id === formData.subscriptionTier);
 
-  const handleSubmit = () => {
-    const cooperativeData: Omit<Cooperative, 'id' | 'createdDate' | 'currentMembers'> = {
-      ...formData,
-      memberLimit: selectedTier?.memberLimit || 100,
-      status: 'trial',
-      lastPayment: new Date().toISOString(),
-      nextBilling: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
-      monthlyFee: selectedTier?.price || 15000,
-      settings,
-      customization: {
-        theme: {
-          primaryColor: formData.primaryColor,
-          secondaryColor: formData.secondaryColor,
-          accentColor: '#10B981',
-          backgroundColor: '#F9FAFB',
-          textColor: '#111827'
-        },
-        branding: {
-          logo: formData.logo,
-          favicon: '/favicon.ico',
-          motto: formData.motto,
-          tagline: 'Building wealth together'
-        },
-        features: {
-          enabledModules: ['loans', 'savings', 'meetings'],
-          customFields: [],
-          dashboardLayout: 'default'
-        }
-      }
-    };
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-    addCooperative(cooperativeData);
-    onClose();
+  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Create a temporary URL for preview
+      const logoUrl = URL.createObjectURL(file);
+      setFormData({ ...formData, logo: logoUrl });
+      // Store the file for actual upload during submission
+      (event.target as any).uploadFile = file;
+    }
+  };
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    try {
+      const logoInput = document.querySelector('input[type="file"]') as any;
+      let logoUrl = formData.logo;
+
+      // Upload logo if a new file was selected
+      if (logoInput?.uploadFile) {
+        // In a real implementation, this would upload to Supabase Storage
+        // For now, we'll use the preview URL
+        logoUrl = formData.logo;
+      }
+
+      const cooperativeData = {
+        name: formData.name,
+        logo: logoUrl,
+        primary_color: formData.primaryColor,
+        secondary_color: formData.secondaryColor,
+        motto: formData.motto,
+        subscription_tier: formData.subscriptionTier,
+        member_limit: selectedTier?.memberLimit || 100,
+        status: 'trial' as const,
+        last_payment: new Date().toISOString(),
+        next_billing: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        monthly_fee: selectedTier?.price || 15000,
+        contact_email: formData.contactEmail,
+        contact_phone: formData.contactPhone,
+        address: formData.address,
+        settings
+      };
+
+      const success = await addCooperative(cooperativeData);
+      if (success) {
+        onClose();
+      }
+    } catch (error) {
+      console.error('Error creating cooperative:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const renderStep1 = () => (
@@ -195,10 +215,19 @@ const AddCooperativeModal = ({ onClose }: AddCooperativeModalProps) => {
             alt="Logo preview"
             className="w-16 h-16 rounded-lg object-cover border"
           />
-          <Button variant="outline" className="flex items-center gap-2">
-            <Upload className="h-4 w-4" />
-            Upload Logo
-          </Button>
+          <label htmlFor="logo-upload">
+            <Button variant="outline" className="flex items-center gap-2" type="button">
+              <Upload className="h-4 w-4" />
+              Upload Logo
+            </Button>
+            <input
+              id="logo-upload"
+              type="file"
+              accept="image/*"
+              onChange={handleLogoUpload}
+              className="hidden"
+            />
+          </label>
         </div>
         <p className="text-sm text-gray-600 mt-2">Recommended: 200x200px, PNG or JPG</p>
       </div>
@@ -429,10 +458,10 @@ const AddCooperativeModal = ({ onClose }: AddCooperativeModalProps) => {
                   handleSubmit();
                 }
               }}
-              disabled={currentStep === 1 && (!formData.name || !formData.contactEmail)}
+              disabled={(currentStep === 1 && (!formData.name || !formData.contactEmail)) || isSubmitting}
               className="bg-blue-600 hover:bg-blue-700"
             >
-              {currentStep === 3 ? 'Create Cooperative' : 'Next'}
+              {isSubmitting ? 'Creating...' : (currentStep === 3 ? 'Create Cooperative' : 'Next')}
             </Button>
           </div>
         </CardContent>

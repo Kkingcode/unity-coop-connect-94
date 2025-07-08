@@ -6,10 +6,10 @@ export interface Cooperative {
   primaryColor: string;
   secondaryColor: string;
   motto: string;
-  subscriptionTier: 'starter' | 'professional' | 'enterprise' | 'custom';
+  subscriptionTier: 'starter' | 'professional' | 'enterprise';
   memberLimit: number;
   currentMembers: number;
-  status: 'active' | 'suspended' | 'trial' | 'expired';
+  status: 'active' | 'suspended' | 'trial' | 'expired' | 'pending_approval';
   createdDate: string;
   lastPayment: string;
   nextBilling: string;

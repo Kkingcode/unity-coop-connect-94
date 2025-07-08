@@ -280,6 +280,80 @@ SELECT
     false
 FROM admin_user;
 
--- Create default cooperative
-INSERT INTO public.cooperatives (name, motto, contact_email, contact_phone)
-VALUES ('Alajeseku Cooperative Society', 'Unity, Progress, Prosperity', 'info@alajeseku.com', '+2348000000000');
+-- Add cooperatives table for multi-tenant support
+CREATE TABLE cooperatives (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    logo TEXT,
+    primary_color VARCHAR(7) DEFAULT '#3B82F6',
+    secondary_color VARCHAR(7) DEFAULT '#1E40AF',
+    motto TEXT,
+    subscription_tier VARCHAR(20) DEFAULT 'starter' CHECK (subscription_tier IN ('starter', 'professional', 'enterprise')),
+    member_limit INTEGER DEFAULT 100,
+    current_members INTEGER DEFAULT 0,
+    status VARCHAR(20) DEFAULT 'trial' CHECK (status IN ('active', 'suspended', 'trial', 'expired', 'pending_approval')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    last_payment TIMESTAMP WITH TIME ZONE,
+    next_billing TIMESTAMP WITH TIME ZONE NOT NULL,
+    monthly_fee DECIMAL(10,2) NOT NULL,
+    contact_email VARCHAR(255) NOT NULL,
+    contact_phone VARCHAR(20) NOT NULL,
+    address TEXT,
+    settings JSONB DEFAULT '{}',
+    admin_name VARCHAR(255),
+    admin_password VARCHAR(255),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Add onboarding requests table
+CREATE TABLE onboarding_requests (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    cooperative_name VARCHAR(255) NOT NULL,
+    admin_name VARCHAR(255) NOT NULL,
+    contact_email VARCHAR(255) NOT NULL,
+    contact_phone VARCHAR(20) NOT NULL,
+    address TEXT,
+    expected_members INTEGER DEFAULT 0,
+    selected_tier VARCHAR(20) DEFAULT 'starter' CHECK (selected_tier IN ('starter', 'professional', 'enterprise')),
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    submitted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    notes TEXT,
+    logo TEXT
+);
+
+-- Add billing records table
+CREATE TABLE billing_records (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    cooperative_id UUID NOT NULL REFERENCES cooperatives(id) ON DELETE CASCADE,
+    amount DECIMAL(10,2) NOT NULL,
+    currency VARCHAR(3) DEFAULT 'NGN',
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('paid', 'pending', 'overdue', 'failed')),
+    due_date TIMESTAMP WITH TIME ZONE NOT NULL,
+    paid_date TIMESTAMP WITH TIME ZONE,
+    invoice_number VARCHAR(50) UNIQUE NOT NULL,
+    description TEXT,
+    payment_method VARCHAR(50),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Add storage bucket for cooperative assets
+INSERT INTO storage.buckets (id, name, public) VALUES ('cooperative-assets', 'cooperative-assets', true);
+
+-- Add cooperative_id to existing tables for multi-tenancy
+ALTER TABLE members ADD COLUMN cooperative_id UUID REFERENCES cooperatives(id) ON DELETE CASCADE;
+ALTER TABLE admins ADD COLUMN cooperative_id UUID REFERENCES cooperatives(id) ON DELETE CASCADE;
+ALTER TABLE savings_transactions ADD COLUMN cooperative_id UUID REFERENCES cooperatives(id) ON DELETE CASCADE;
+ALTER TABLE loan_applications ADD COLUMN cooperative_id UUID REFERENCES cooperatives(id) ON DELETE CASCADE;
+ALTER TABLE loan_payments ADD COLUMN cooperative_id UUID REFERENCES cooperatives(id) ON DELETE CASCADE;
+
+-- Update RLS policies for multi-tenant support
+CREATE POLICY "Public can view cooperatives" ON cooperatives FOR SELECT USING (true);
+CREATE POLICY "Super admin can manage cooperatives" ON cooperatives FOR ALL USING (true);
+CREATE POLICY "Public can submit onboarding requests" ON onboarding_requests FOR INSERT WITH CHECK (true);
+CREATE POLICY "Super admin can manage onboarding" ON onboarding_requests FOR ALL USING (true);
+CREATE POLICY "Super admin can manage billing" ON billing_records FOR ALL USING (true);
+
+-- Enable RLS on new tables
+ALTER TABLE cooperatives ENABLE ROW LEVEL SECURITY;
+ALTER TABLE onboarding_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE billing_records ENABLE ROW LEVEL SECURITY;

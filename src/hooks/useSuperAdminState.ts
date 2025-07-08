@@ -9,6 +9,8 @@ import {
   BillingRecord,
   PlatformSettings
 } from '@/types/multiTenant';
+import { cooperativeService } from '@/services/cooperativeService';
+import { toast } from 'sonner';
 
 // Enhanced mock data for the platform
 const mockCooperatives: Cooperative[] = [
@@ -323,16 +325,39 @@ export const useSuperAdminState = () => {
   });
 
   // Cooperative Management Functions
-  const addCooperative = (cooperativeData: Omit<Cooperative, 'id' | 'createdDate' | 'currentMembers'>) => {
-    const newCooperative: Cooperative = {
-      ...cooperativeData,
-      id: `coop-${Date.now()}`,
-      createdDate: new Date().toISOString(),
-      currentMembers: 0
-    };
-    
-    setCooperatives(prev => [...prev, newCooperative]);
-    console.log('New cooperative added:', newCooperative);
+  const addCooperative = async (cooperativeData: {
+    name: string;
+    logo?: string;
+    primary_color: string;
+    secondary_color: string;
+    motto?: string;
+    subscription_tier: 'starter' | 'professional' | 'enterprise';
+    member_limit: number;
+    status: 'active' | 'suspended' | 'trial' | 'expired' | 'pending_approval';
+    last_payment?: string;
+    next_billing: string;
+    monthly_fee: number;
+    contact_email: string;
+    contact_phone: string;
+    address?: string;
+    settings: any;
+  }) => {
+    try {
+      const newCooperative = await cooperativeService.createCooperative(cooperativeData);
+      if (newCooperative) {
+        await loadCooperatives();
+        await loadAnalytics();
+        toast.success('Cooperative created successfully');
+        return true;
+      } else {
+        toast.error('Failed to create cooperative');
+        return false;
+      }
+    } catch (error) {
+      console.error('Error adding cooperative:', error);
+      toast.error('Failed to create cooperative');
+      return false;
+    }
   };
 
   const updateCooperative = (id: string, updates: Partial<Cooperative>) => {
@@ -371,99 +396,36 @@ export const useSuperAdminState = () => {
     console.log('New onboarding request:', newRequest);
   };
 
-  const approveOnboardingRequest = (id: string) => {
-    const request = onboardingRequests.find(r => r.id === id);
-    if (request) {
-      // Create the cooperative
-      const tier = subscriptionTiers.find(t => t.id === request.selectedTier);
-      const newCooperative: Omit<Cooperative, 'id' | 'createdDate' | 'currentMembers'> = {
-        name: request.cooperativeName,
-        logo: '/placeholder.svg',
-        primaryColor: '#3B82F6',
-        secondaryColor: '#1E40AF',
-        motto: 'Progress Through Unity',
-        subscriptionTier: request.selectedTier as any,
-        memberLimit: tier?.memberLimit || 100,
-        status: 'trial',
-        lastPayment: new Date().toISOString(),
-        nextBilling: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        monthlyFee: tier?.price || 15000,
-        contactEmail: request.email,
-        contactPhone: request.phone,
-        address: request.address,
-        settings: {
-          loanSettings: {
-            maxLoanAmount: 500000,
-            defaultInterestRate: 12,
-            maxLoanTerm: 24,
-            collateralRequired: true,
-            guarantorsRequired: 2,
-            autoApprovalLimit: 50000,
-            latePaymentGracePeriod: 7
-          },
-          savingsSettings: {
-            minimumBalance: 5000,
-            interestRate: 8,
-            withdrawalLimits: { daily: 50000, monthly: 200000 },
-            compoundingFrequency: 'monthly'
-          },
-          membershipSettings: {
-            registrationFee: 2000,
-            monthlyDues: 1000,
-            minimumAge: 18,
-            maximumAge: 65,
-            documentRequirements: ['National ID', 'Passport Photo'],
-            approvalWorkflow: 'manual',
-            probationPeriod: 90
-          },
-          fineStructure: {
-            latePaymentFine: 500,
-            missedMeetingFine: 200,
-            defaultLoanFine: 1000,
-            documentationFine: 100,
-            customFines: []
-          },
-          meetingSettings: {
-            frequency: 'monthly',
-            quorumPercentage: 60,
-            votingThreshold: 75,
-            allowVirtualAttendance: true
-          }
-        },
-        customization: {
-          theme: {
-            primaryColor: '#3B82F6',
-            secondaryColor: '#1E40AF',
-            accentColor: '#10B981',
-            backgroundColor: '#F9FAFB',
-            textColor: '#111827'
-          },
-          branding: {
-            logo: '/placeholder.svg',
-            favicon: '/favicon.ico',
-            motto: 'Progress Through Unity'
-          },
-          features: {
-            enabledModules: ['loans', 'savings', 'meetings'],
-            customFields: [],
-            dashboardLayout: 'default'
-          }
-        }
-      };
-      
-      addCooperative(newCooperative);
-      
-      // Update the onboarding request
-      setOnboardingRequests(prev => 
-        prev.map(r => r.id === id ? { ...r, status: 'approved' as const } : r)
-      );
+  const approveOnboardingRequest = async (id: string) => {
+    try {
+      const success = await cooperativeService.approveOnboardingRequest(id);
+      if (success) {
+        await loadCooperatives();
+        await loadOnboardingRequests();
+        await loadAnalytics();
+        toast.success('Onboarding request approved successfully');
+      } else {
+        toast.error('Failed to approve onboarding request');
+      }
+    } catch (error) {
+      console.error('Error approving onboarding request:', error);
+      toast.error('Failed to approve onboarding request');
     }
   };
 
-  const rejectOnboardingRequest = (id: string, reason: string) => {
-    setOnboardingRequests(prev => 
-      prev.map(r => r.id === id ? { ...r, status: 'rejected' as const, notes: reason } : r)
-    );
+  const rejectOnboardingRequest = async (id: string, reason: string) => {
+    try {
+      const success = await cooperativeService.rejectOnboardingRequest(id, reason);
+      if (success) {
+        await loadOnboardingRequests();
+        toast.success('Onboarding request rejected');
+      } else {
+        toast.error('Failed to reject onboarding request');
+      }
+    } catch (error) {
+      console.error('Error rejecting onboarding request:', error);
+      toast.error('Failed to reject onboarding request');
+    }
   };
 
   // Utility Functions
@@ -483,61 +445,148 @@ export const useSuperAdminState = () => {
     return cooperatives.filter(coop => coop.status === 'active');
   };
 
+  // Load functions
+  const loadCooperatives = async () => {
+    try {
+      const data = await cooperativeService.getAllCooperatives();
+      // Convert database format to frontend format
+      const formattedCooperatives = data.map(coop => ({
+        id: coop.id,
+        name: coop.name,
+        logo: coop.logo || '/placeholder.svg',
+        primaryColor: coop.primary_color,
+        secondaryColor: coop.secondary_color,
+        motto: coop.motto || '',
+        subscriptionTier: coop.subscription_tier,
+        memberLimit: coop.member_limit,
+        currentMembers: coop.current_members,
+        status: coop.status,
+        createdDate: coop.created_at,
+        lastPayment: coop.last_payment || '',
+        nextBilling: coop.next_billing,
+        monthlyFee: coop.monthly_fee,
+        contactEmail: coop.contact_email,
+        contactPhone: coop.contact_phone,
+        address: coop.address || '',
+        settings: { ...coop.settings, fineStructure: { ...coop.settings.fineStructure, customFines: [] } },
+        customization: {
+          theme: {
+            primaryColor: coop.primary_color,
+            secondaryColor: coop.secondary_color,
+            accentColor: '#10B981',
+            backgroundColor: '#F9FAFB',
+            textColor: '#111827'
+          },
+          branding: {
+            logo: coop.logo || '/placeholder.svg',
+            favicon: '/favicon.ico',
+            motto: coop.motto || ''
+          },
+          features: {
+            enabledModules: ['loans', 'savings', 'meetings'],
+            customFields: [],
+            dashboardLayout: 'default'
+          }
+        }
+      }));
+      setCooperatives(formattedCooperatives);
+    } catch (error) {
+      console.error('Error loading cooperatives:', error);
+      toast.error('Failed to load cooperatives');
+    }
+  };
+
+  const loadOnboardingRequests = async () => {
+    try {
+      const data = await cooperativeService.getAllOnboardingRequests();
+      // Convert database format to frontend format
+      const formattedRequests = data.map(req => ({
+        id: req.id,
+        cooperativeName: req.cooperative_name,
+        contactPerson: req.admin_name,
+        email: req.contact_email,
+        phone: req.contact_phone,
+        address: req.address || '',
+        expectedMembers: req.expected_members,
+        selectedTier: req.selected_tier,
+        status: req.status,
+        submittedDate: req.submitted_at,
+        documents: [],
+        notes: req.notes
+      }));
+      setOnboardingRequests(formattedRequests);
+    } catch (error) {
+      console.error('Error loading onboarding requests:', error);
+    }
+  };
+
+  const loadAnalytics = async () => {
+    try {
+      const data = await cooperativeService.getPlatformAnalytics();
+      setAnalytics(prev => ({ ...prev, ...data }));
+    } catch (error) {
+      console.error('Error loading analytics:', error);
+    }
+  };
+
+  // Initial load
+  useEffect(() => {
+    loadCooperatives();
+    loadOnboardingRequests();
+    loadAnalytics();
+  }, []);
+
   // Update analytics when cooperatives change
   useEffect(() => {
-    const totalRevenue = cooperatives.reduce((sum, coop) => sum + (coop.status === 'active' ? coop.monthlyFee : 0), 0);
-    const totalMembers = cooperatives.reduce((sum, coop) => sum + coop.currentMembers, 0);
-    
-    setAnalytics(prev => ({
-      ...prev,
-      totalCooperatives: cooperatives.length,
-      totalMembers,
-      monthlyRevenue: totalRevenue,
-      annualRevenue: totalRevenue * 12,
-      activeSubscriptions: cooperatives.filter(c => c.status === 'active').length,
-      averageRevenuePerUser: totalMembers > 0 ? totalRevenue / totalMembers : 0,
-      topPerformingCooperatives: cooperatives
-        .sort((a, b) => b.currentMembers - a.currentMembers)
-        .slice(0, 3),
-      revenueByTier: {
-        starter: cooperatives.filter(c => c.subscriptionTier === 'starter' && c.status === 'active')
-          .reduce((sum, c) => sum + c.monthlyFee, 0),
-        professional: cooperatives.filter(c => c.subscriptionTier === 'professional' && c.status === 'active')
-          .reduce((sum, c) => sum + c.monthlyFee, 0),
-        enterprise: cooperatives.filter(c => c.subscriptionTier === 'enterprise' && c.status === 'active')
-          .reduce((sum, c) => sum + c.monthlyFee, 0)
-      }
-    }));
+    if (cooperatives.length > 0) {
+      const totalRevenue = cooperatives.reduce((sum, coop) => sum + (coop.status === 'active' ? coop.monthlyFee : 0), 0);
+      const totalMembers = cooperatives.reduce((sum, coop) => sum + coop.currentMembers, 0);
+      
+      setAnalytics(prev => ({
+        ...prev,
+        totalCooperatives: cooperatives.length,
+        totalMembers,
+        monthlyRevenue: totalRevenue,
+        annualRevenue: totalRevenue * 12,
+        activeSubscriptions: cooperatives.filter(c => c.status === 'active').length,
+        averageRevenuePerUser: totalMembers > 0 ? totalRevenue / totalMembers : 0,
+        topPerformingCooperatives: cooperatives
+          .sort((a, b) => b.currentMembers - a.currentMembers)
+          .slice(0, 3),
+        revenueByTier: {
+          starter: cooperatives.filter(c => c.subscriptionTier === 'starter' && c.status === 'active')
+            .reduce((sum, c) => sum + c.monthlyFee, 0),
+          professional: cooperatives.filter(c => c.subscriptionTier === 'professional' && c.status === 'active')
+            .reduce((sum, c) => sum + c.monthlyFee, 0),
+          enterprise: cooperatives.filter(c => c.subscriptionTier === 'enterprise' && c.status === 'active')
+            .reduce((sum, c) => sum + c.monthlyFee, 0)
+        }
+      }));
+    }
   }, [cooperatives]);
 
   return {
-    // Data
     cooperatives,
     subscriptionTiers,
-    analytics,
     onboardingRequests,
     billingRecords,
     platformSettings,
-    
-    // Cooperative Management
+    analytics,
     addCooperative,
     updateCooperative,
     suspendCooperative,
     reactivateCooperative,
     deleteCooperative,
-    
-    // Onboarding Management
     addOnboardingRequest,
     approveOnboardingRequest,
     rejectOnboardingRequest,
-    
-    // Utility Functions
     getCooperativeById,
     getSubscriptionTierById,
     getCooperativesByTier,
     getActiveCooperatives,
-    
-    // Settings
+    loadCooperatives,
+    loadOnboardingRequests,
+    loadAnalytics,
     setPlatformSettings
   };
 };
