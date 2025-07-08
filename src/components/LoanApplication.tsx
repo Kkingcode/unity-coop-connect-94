@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +6,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Search, User, DollarSign, Calendar } from 'lucide-react';
 import { Screen } from '@/pages/Index';
-import { useAppState } from '@/hooks/useAppState';
+import { authService, AuthUser } from '@/services/authService';
+import { loanService } from '@/services/loanService';
+import { toast } from 'sonner';
 
 interface LoanApplicationProps {
   user: any;
@@ -15,34 +16,48 @@ interface LoanApplicationProps {
 }
 
 const LoanApplication = ({ user, onNavigate }: LoanApplicationProps) => {
-  const { members, createLoanApplication, addAdminLog } = useAppState();
-  const [step, setStep] = useState(1);
+  const [members, setMembers] = useState<AuthUser[]>([]);
+  const [loading, setLoading] = useState(false);
   const [loanData, setLoanData] = useState({
     amount: '',
     purpose: '',
     duration: '12',
-    guarantor1: null as any,
-    guarantor2: null as any
+    guarantor1: null as AuthUser | null,
+    guarantor2: null as AuthUser | null
   });
   const [guarantorSearch, setGuarantorSearch] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<AuthUser[]>([]);
   const [selectedGuarantor, setSelectedGuarantor] = useState<1 | 2 | null>(null);
 
-  const userSavings = user?.savings || 0;
+  const userSavings = user?.balance || 0;
   const loanAmount = Number(loanData.amount);
+
+  useEffect(() => {
+    loadMembers();
+  }, []);
 
   useEffect(() => {
     if (guarantorSearch) {
       const results = members.filter(member => 
         member.id !== user.id &&
-        (member.name.toLowerCase().includes(guarantorSearch.toLowerCase()) ||
-         member.membershipId.toLowerCase().includes(guarantorSearch.toLowerCase()))
+        (member.name?.toLowerCase().includes(guarantorSearch.toLowerCase()) ||
+         member.account_number.toLowerCase().includes(guarantorSearch.toLowerCase()))
       ).slice(0, 5);
       setSearchResults(results);
     } else {
       setSearchResults([]);
     }
   }, [guarantorSearch, members, user.id]);
+
+  const loadMembers = async () => {
+    try {
+      const allMembers = await authService.getAllMembers();
+      setMembers(allMembers);
+    } catch (error) {
+      console.error('Error loading members:', error);
+      toast.error('Failed to load members');
+    }
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-NG', {
@@ -51,7 +66,7 @@ const LoanApplication = ({ user, onNavigate }: LoanApplicationProps) => {
     }).format(amount);
   };
 
-  const selectGuarantor = (guarantor: any) => {
+  const selectGuarantor = (guarantor: AuthUser) => {
     if (selectedGuarantor === 1) {
       setLoanData({ ...loanData, guarantor1: guarantor });
     } else if (selectedGuarantor === 2) {
@@ -68,34 +83,49 @@ const LoanApplication = ({ user, onNavigate }: LoanApplicationProps) => {
     return (guarantor1Savings + userSavings) >= loanAmount;
   };
 
-  const handleSubmit = () => {
-    const requiredGuarantors = canUseOneGuarantor() ? 1 : 2;
-    
-    if (requiredGuarantors === 2 && !loanData.guarantor2) {
-      alert('You need two guarantors for this loan amount. Please select a second guarantor.');
+  const handleSubmit = async () => {
+    if (!loanData.amount || !loanData.purpose || !loanData.guarantor1) {
+      toast.error('Please fill in all required fields');
       return;
     }
 
-    const application = {
-      memberId: user.id,
-      memberName: user.name,
-      amount: loanAmount,
-      purpose: loanData.purpose,
-      duration: Number(loanData.duration),
-      guarantor1: loanData.guarantor1,
-      guarantor2: requiredGuarantors === 2 ? loanData.guarantor2 : null,
-      status: 'pending' as const,
-      applicationDate: new Date().toISOString(),
-      monthlyPayment: loanAmount / Number(loanData.duration)
-    };
-
-    createLoanApplication(application);
+    const requiredGuarantors = canUseOneGuarantor() ? 1 : 2;
     
-    addAdminLog(user.id, user.name, 'Loan Application', 
-      `Applied for ${formatCurrency(loanAmount)} loan with ${requiredGuarantors} guarantor(s)`);
+    if (requiredGuarantors === 2 && !loanData.guarantor2) {
+      toast.error('You need two guarantors for this loan amount. Please select a second guarantor.');
+      return;
+    }
 
-    alert('Loan application submitted successfully! Guarantors will be notified.');
-    onNavigate('member-dashboard');
+    // Check loan eligibility
+    const eligibility = await loanService.checkLoanEligibility(user.id, loanAmount);
+    if (!eligibility.eligible) {
+      toast.error(eligibility.reason || 'You are not eligible for this loan');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const application = await loanService.createLoanApplication({
+        memberId: user.id,
+        amount: loanAmount,
+        purpose: loanData.purpose,
+        durationMonths: Number(loanData.duration),
+        guarantor1Id: loanData.guarantor1.id,
+        guarantor2Id: requiredGuarantors === 2 ? loanData.guarantor2?.id : undefined
+      });
+
+      if (application) {
+        toast.success('Loan application submitted successfully! Guarantors will be notified.');
+        onNavigate('member-dashboard');
+      } else {
+        toast.error('Failed to submit loan application. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error submitting loan application:', error);
+      toast.error('Failed to submit loan application. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const renderGuarantorRequirement = () => {
@@ -121,6 +151,9 @@ const LoanApplication = ({ user, onNavigate }: LoanApplicationProps) => {
       );
     }
   };
+
+  // Calculate loan terms for display
+  const loanTerms = loanAmount > 0 ? loanService.calculateLoanTerms(loanAmount, Number(loanData.duration)) : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-purple-50/30 p-4">
@@ -188,13 +221,24 @@ const LoanApplication = ({ user, onNavigate }: LoanApplicationProps) => {
             {/* Guarantor Requirements */}
             {renderGuarantorRequirement()}
 
-            {/* Monthly Payment Info */}
-            {loanAmount > 0 && (
-              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                <p className="text-purple-700 font-medium">Monthly Payment</p>
-                <p className="text-purple-600">
-                  {formatCurrency(loanAmount / Number(loanData.duration))} per month
-                </p>
+            {/* Loan Terms Info */}
+            {loanTerms && (
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 space-y-2">
+                <p className="text-purple-700 font-medium">Loan Terms</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <p className="text-purple-600">Monthly Payment</p>
+                    <p className="font-semibold">{formatCurrency(loanTerms.monthlyPayment)}</p>
+                  </div>
+                  <div>
+                    <p className="text-purple-600">Total Amount</p>
+                    <p className="font-semibold">{formatCurrency(loanTerms.totalAmount)}</p>
+                  </div>
+                  <div>
+                    <p className="text-purple-600">Interest (5%)</p>
+                    <p className="font-semibold">{formatCurrency(loanTerms.interestAmount)}</p>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -224,9 +268,9 @@ const LoanApplication = ({ user, onNavigate }: LoanApplicationProps) => {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="font-medium">{loanData.guarantor1.name}</p>
-                          <p className="text-sm text-gray-600">{loanData.guarantor1.membershipId}</p>
+                          <p className="text-sm text-gray-600">{loanData.guarantor1.account_number}</p>
                           <p className="text-sm text-green-600">
-                            Balance: {formatCurrency(loanData.guarantor1.balance)}
+                            Balance: {formatCurrency(loanData.guarantor1.balance || 0)}
                           </p>
                         </div>
                         <Button
@@ -242,7 +286,7 @@ const LoanApplication = ({ user, onNavigate }: LoanApplicationProps) => {
                 ) : selectedGuarantor === 1 && (
                   <div className="space-y-2">
                     <Input
-                      placeholder="Search by name or member ID"
+                      placeholder="Search by name or account number"
                       value={guarantorSearch}
                       onChange={(e) => setGuarantorSearch(e.target.value)}
                     />
@@ -257,11 +301,11 @@ const LoanApplication = ({ user, onNavigate }: LoanApplicationProps) => {
                             <div className="flex items-center justify-between">
                               <div>
                                 <p className="font-medium">{member.name}</p>
-                                <p className="text-sm text-gray-600">{member.membershipId}</p>
+                                <p className="text-sm text-gray-600">{member.account_number}</p>
                               </div>
                               <div className="text-right">
                                 <p className="text-sm text-gray-600">Balance</p>
-                                <p className="font-medium text-green-600">••••••••</p>
+                                <p className="font-medium text-green-600">{formatCurrency(member.balance || 0)}</p>
                               </div>
                             </div>
                           </div>
@@ -295,9 +339,9 @@ const LoanApplication = ({ user, onNavigate }: LoanApplicationProps) => {
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="font-medium">{loanData.guarantor2.name}</p>
-                            <p className="text-sm text-gray-600">{loanData.guarantor2.membershipId}</p>
+                            <p className="text-sm text-gray-600">{loanData.guarantor2.account_number}</p>
                             <p className="text-sm text-green-600">
-                              Balance: {formatCurrency(loanData.guarantor2.balance)}
+                              Balance: {formatCurrency(loanData.guarantor2.balance || 0)}
                             </p>
                           </div>
                           <Button
@@ -313,7 +357,7 @@ const LoanApplication = ({ user, onNavigate }: LoanApplicationProps) => {
                   ) : selectedGuarantor === 2 && (
                     <div className="space-y-2">
                       <Input
-                        placeholder="Search by name or member ID"
+                        placeholder="Search by name or account number"
                         value={guarantorSearch}
                         onChange={(e) => setGuarantorSearch(e.target.value)}
                       />
@@ -328,11 +372,11 @@ const LoanApplication = ({ user, onNavigate }: LoanApplicationProps) => {
                               <div className="flex items-center justify-between">
                                 <div>
                                   <p className="font-medium">{member.name}</p>
-                                  <p className="text-sm text-gray-600">{member.membershipId}</p>
+                                  <p className="text-sm text-gray-600">{member.account_number}</p>
                                 </div>
                                 <div className="text-right">
                                   <p className="text-sm text-gray-600">Balance</p>
-                                  <p className="font-medium text-green-600">••••••••</p>
+                                  <p className="font-medium text-green-600">{formatCurrency(member.balance || 0)}</p>
                                 </div>
                               </div>
                             </div>
@@ -349,15 +393,16 @@ const LoanApplication = ({ user, onNavigate }: LoanApplicationProps) => {
             <div className="pt-4">
               <Button
                 onClick={handleSubmit}
-                className="w-full bg-purple-600 hover:bg-purple-700"
+                className="w-full bg-primary hover:bg-primary/90"
                 disabled={
+                  loading ||
                   !loanData.amount || 
                   !loanData.purpose || 
                   !loanData.guarantor1 || 
                   (!canUseOneGuarantor() && !loanData.guarantor2)
                 }
               >
-                Submit Loan Application
+                {loading ? 'Submitting...' : 'Submit Loan Application'}
               </Button>
             </div>
           </CardContent>
